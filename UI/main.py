@@ -68,7 +68,7 @@ class App:
                         for participant in participants_response['data']:
                             if participant['chat_id'] == chat_id:
                                 participants_list.append(participant)
-                                name_response = db.users.select_by_id(id=participant['user_id'])
+                                name_response = db.select_by_id(id=participant['user_id'])
                                 if name_response['isSuccess']:
                                     name = name_response['data']['name']
                                     participants_names_list.append(name)

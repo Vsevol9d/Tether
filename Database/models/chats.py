@@ -14,9 +14,9 @@ class Chats(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(60), nullable=False)
-    avatar_url = Column(Text)
+    avatar_url = Column(Integer)
     date_created = Column(String(10), nullable=False, server_default=text("to_char(current_date, 'DD-MM-YYYY')"))
-    type = Column(String, nullable=False, default="private")
+    type = Column(String, nullable=False, server_default="private")
 
     participants = relationship("Participants", back_populates="chat", cascade="all, delete-orphan")
     users = relationship("Users", secondary="participants", back_populates="chats", overlaps="participants")
