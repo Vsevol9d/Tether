@@ -12,11 +12,11 @@ import traceback  #  Подробное описание ошибок
 from functools import wraps
 
 
-# connection = ("postgresql://admin:bbqb5ON9TyrL7UwHbITyDT22ILByL0fU@dpg-d76in4hr0fns73cbkjk0-"
-#               "a.oregon-postgres.render.com/main_database_4beq")  # Удалённая синхронная БД (render.com)
+connection = ("postgresql://admin:bbqb5ON9TyrL7UwHbITyDT22ILByL0fU@dpg-d76in4hr0fns73cbkjk0-"
+              "a.oregon-postgres.render.com/main_database_4beq")  # Удалённая синхронная БД (render.com)
 # connection = ("postgresql+asyncpg://admin:bbqb5ON9TyrL7UwHbITyDT22ILByL0fU@dpg-d76in4hr0fns73cbkjk0-"
 #               "a.oregon-postgres.render.com/main_database_4beq")  # Удалённая асинхронная БД (render.com)
-connection = "postgresql+psycopg2://postgres:Sokol_12@localhost:5432/postgres"  # Локальная синхронная БД
+# connection = "postgresql+psycopg2://postgres:Sokol_12@localhost:5432/postgres"  # Локальная синхронная БД
 # connection = "postgresql+asyncpg://postgres:Sokol_12@localhost:5432/postgres"  # Локальная асинхронная БД
 engine = create_engine(connection)
 # engine = create_async_engine(connection, future=True)
