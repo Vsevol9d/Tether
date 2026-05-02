@@ -6,6 +6,9 @@ class AddingPage(ctk.CTkFrame):
         # Инициализируем как CTkFrame
         super().__init__(master, corner_radius=0)
 
+        # Имя страницы
+        self.name = 'adding_page'
+
         self.returning = back_to_chats
         self.submitting = on_chat_adding_submit
         self.users_names = addable_users

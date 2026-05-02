@@ -5,6 +5,9 @@ class SignUpPage(ctk.CTkFrame):
         # Инициализируем сам класс как CTkFrame
         super().__init__(master, corner_radius=15)
 
+        # Имя страницы
+        self.name = 'sign_up_page'
+
         self.grid_columnconfigure((0, 3), weight=1)
         self.grid_rowconfigure((0, 12), weight=1)
 

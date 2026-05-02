@@ -104,7 +104,7 @@ class App:
         self.current_page = self.adding_page
 
     def get_current_page(self) -> str:
-        return self.current_page
+        return self.current_page.name
 
     #################################################################################################
     # Методы обработчики добавления новых элементов UI
@@ -138,12 +138,14 @@ class App:
 
         :param chat_id: ID открываемого чата
         """
+
+        chat_type = 'group' # В будущем изменить
         chat_name = self.available_chats[chat_id]['name']
         chat_messages = self.available_chats[chat_id]['messages']
         chat_participants_count = self.available_chats[chat_id]['participants_count']
         chat_participants_names = self.available_chats[chat_id]['participants_names']
 
-        self.current_chat_info = {'type': 'group', 'name': chat_name, 'participants_names': chat_participants_names,'participants_count': chat_participants_count}
+        self.current_chat_info = {'type': chat_type, 'name': chat_name, 'participants_names': chat_participants_names,'participants_count': chat_participants_count}
 
         self.add_chat_view('group', chat_name, chat_participants_count)
 
@@ -206,16 +208,8 @@ class App:
                         self.switch_to_chatting_page()
 
                         self.is_authorized = True
-
-                        # Отладка
-                        users = db.users.select_all()
-                        if users['isSuccess']:
-                            print('Список всех пользователей:')
-                            for user in users['data']:
-                                print(user['name'], user['username'])
                     else:
-                        self.sign_up_page.error_callback('Ошибочка вышла!')
-                        print(register_response)
+                        error = ErrorHandler(self.root, register_response['error'])
                 else:
                     self.sign_up_page.error_callback('Такое имя пользователя занято!')
             else:

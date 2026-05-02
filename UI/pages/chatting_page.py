@@ -16,6 +16,9 @@ class ChattingPage(ctk.CTkFrame):
         """
         super().__init__(master, corner_radius=0)
 
+        # Имя страницы
+        self.name = 'chatting_page'
+
         self.master = master
         self.switch_to_adding_chat = switch_to_adding_page
         self.user_info = user_info
