@@ -9,7 +9,7 @@ from UI.pages.adding_page import AddingPage
 from UI.pages.sign_up_page import SignUpPage
 from UI.element_views.chat_view import MessageView, ChatView, ChatInfoView
 from UI.element_views.selectable_chat_view import SelectableChatView
-from Database.main_db import Session, DataBase
+from Database.api import Session, DataBase
 
 # Обработчик ошибок со стороны UI
 from error_handler import ErrorHandler
@@ -49,7 +49,7 @@ class App:
     def switch_to_chatting_page(self) -> None:
         if not self.is_authorized:
             # Получаем чаты по id пользователя
-            chats = db.chats.select_all_chats_by_id_user(user_id=self.user['id'])
+            chats = db.select_all_chats_by_id_user(user_id=self.user['id'])
             if chats['isSuccess']:
                 for chat in chats['data']:
                     chat_id = chat['id']
@@ -63,7 +63,7 @@ class App:
                         for participant in participants_response['data']:
                             if participant['chat_id'] == chat_id:
                                 participants_list.append(participant)
-                                name_response = db.users.select_by_id(id=participant['user_id'])
+                                name_response = db.select_by_id(id=participant['user_id'])
                                 if name_response['isSuccess']:
                                     name = name_response['data']['name']
                                     participants_names_list.append(name)
@@ -72,7 +72,7 @@ class App:
                                         self.addable_users_ids.append(participant['user_id'])
 
                     # Получаем сообщения по id чата
-                    messages = db.messages.select_all_messages_by_chat_id(chat_id=chat_id)
+                    messages = db.select_all_messages_by_chat_id(chat_id=chat_id)
                     if messages['isSuccess']:
                         messages_list = messages['data']
                         if len(messages_list) > 0:
@@ -156,7 +156,7 @@ class App:
             else:
                 content_type = 'text'
                 content = message['text']
-            sender_response = db.users.select_by_id(id=message['user_id'])
+            sender_response = db.select_by_id(id=message['user_id'])
             if sender_response['isSuccess']:
                 sender_name = sender_response['data']['name']
                 if sender_name == self.user['name']:
@@ -224,7 +224,7 @@ class App:
             is_existing = db.users.exists(username=username, password=password)
             if is_existing:
                 # Получение словаря в user_response['data'], где есть id и name
-                login_response = db.users.select_by_username(username=username)
+                login_response = db.select_by_username(username=username)
                 if login_response['isSuccess']:
                     self.user = login_response['data']
 

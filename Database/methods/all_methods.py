@@ -33,6 +33,17 @@ class DataBase(BasicMethods):
         return {'isSuccess': True, 'data': structured_data}
 
     @catching_errors()
+    def select_by_username(self, username: str) -> dict:
+        data = self.session.execute(
+            select(Users.id, Users.name).where(Users.username == username)).mappings().one_or_none()
+        return {'isSuccess': True, 'data': dict(data)}
+
+    @catching_errors()
+    def select_by_id(self, id: int) -> dict:
+        data = self.session.execute(select(Users.name).where(Users.id == id)).mappings().one_or_none()
+        return {'isSuccess': True, 'data': dict(data)}
+
+    @catching_errors()
     def select_id_name_by_username(self, username: str) -> dict:
         data = self.session.execute(select(Users.id, Users.name).where(Users.username == username)).mappings().one_or_none()
         return {'isSuccess': True, 'data': dict(data)}
