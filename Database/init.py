@@ -11,8 +11,9 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 import traceback  #  Подробное описание ошибок
 from functools import wraps
 
+
 connection = ("postgresql://communicator_kzeo_user:bdP0go7f3H6PcneKFPvRoqJ8nwW1LmWd@dpg-d7r3olnlk1mc73cuqv4g-"
-              "a.oregon-postgres.render.com/communicator_kzeo")  # Удалённая синхронная БД (render.com)
+              "a.oregon-postgres.render.com/communicator_kzeo") # Удалённая синхронная БД (render.com)
 # connection = ("postgresql+asyncpg://communicator_kzeo_user:bdP0go7f3H6PcneKFPvRoqJ8nwW1LmWd@dpg-d7r3olnlk1mc73cuqv4g-"
 #               "a.oregon-postgres.render.com/communicator_kzeo")  # Удалённая асинхронная БД (render.com)
 # connection = "postgresql+psycopg2://postgres:Sokol_12@localhost:5432/postgres"  # Локальная синхронная БД

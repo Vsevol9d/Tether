@@ -1,7 +1,7 @@
 import customtkinter as ctk
+from tkinter import filedialog
 
-
-class AddingPage(ctk.CTkFrame):
+class AddingPage(ctk.CTkScrollableFrame):
     def __init__(self, master, back_to_chats, on_chat_adding_submit, addable_users):
         # Инициализируем как CTkFrame
         super().__init__(master, corner_radius=0)
@@ -12,12 +12,15 @@ class AddingPage(ctk.CTkFrame):
         self.returning = back_to_chats
         self.submitting = on_chat_adding_submit
         self.users_names = addable_users
+        self.master = master
 
         self.selected_users = []  # Список строк (имен)
         self.user_widgets = []  # Список созданных виджетов (фреймов со строками)
 
         self.grid_columnconfigure((0, 3), weight=1)
         self.grid_rowconfigure((0, 12), weight=1)
+
+        self.bind("<MouseWheel>", self._on_mousewheel)
 
         # Заголовок страницы
         self.title_label = ctk.CTkLabel(
@@ -26,9 +29,12 @@ class AddingPage(ctk.CTkFrame):
             font=("Arial", 24, "bold")
         )
 
+#######################################################################
+
+        # Выбор типа чата
         self.chat_type_label = ctk.CTkLabel(
             self,
-            text="Выберите тип чата:",
+            text="*Выберите тип чата:",
             font=("Arial", 14)
         )
 
@@ -39,9 +45,12 @@ class AddingPage(ctk.CTkFrame):
             values = ["Личная переписка", "Группа", "Канал"]
         )
 
+#######################################################################
+
+        # Ввод имени чата
         self.chat_name_label = ctk.CTkLabel(
             self,
-            text='Название чата:',
+            text='*Название чата:',
             font=("Arial", 14)
         )
 
@@ -52,9 +61,12 @@ class AddingPage(ctk.CTkFrame):
             placeholder_text="Например: Проект Альфа"
         )
 
+#######################################################################
+
+        # Выбор участников чата
         self.participants_label = ctk.CTkLabel(
             self,
-            text='Выберите участников:',
+            text='*Выберите участников:',
             font=("Arial", 14)
         )
 
@@ -72,9 +84,13 @@ class AddingPage(ctk.CTkFrame):
             self,
             width=400,
             height=100,
-            label_text="Выбранные участники"
+            label_text="Выбранные участники",
+            fg_color="#303030"
         )
 
+#######################################################################
+
+        # Выбор аватара
         self.avatar_url_label = ctk.CTkLabel(
             self,
             text="Ссылка на изображение:",
@@ -83,12 +99,20 @@ class AddingPage(ctk.CTkFrame):
 
         self.avatar_url_entry = ctk.CTkEntry(
             self,
-            width=400,
+            width=310,
             height=40,
-            placeholder_text="Вставьте сюда ссылку на изображение для аватара чата"
+            placeholder_text="Текст ссылки"
         )
 
-        # Кнопки с использованием относительных координат для адаптивности
+        self.file_button = ctk.CTkButton(
+            self,
+            text="Выбрать файл",
+            width=80,
+            command=self.select_avatar_file
+        )
+
+#######################################################################
+
         self.back_button = ctk.CTkButton(
             self,
             text="Вернуться к чатам",
@@ -115,6 +139,10 @@ class AddingPage(ctk.CTkFrame):
 
         self.setup_initial_view()
 
+    def _on_mousewheel(self, event):
+        # Прокрутка вверх/вниз в зависимости от направления колесика
+        self._parent_canvas.yview_scroll(int(-1 * (event.delta / 6)), "units")
+
     def add_participant(self, choice):
         if choice and choice not in self.selected_users and choice in self.users_names:
             self.selected_users.append(choice)
@@ -127,7 +155,10 @@ class AddingPage(ctk.CTkFrame):
     def render_user_row(self, name):
         # Создаем контейнер для одной строки (имя + кнопка)
         row = ctk.CTkFrame(self.participants_list_frame, fg_color="transparent")
-        row.pack(fill="x", pady=2)
+        row.pack(pady=2, padx=5)
+        row.configure(width=360)
+        row.pack_propagate(False)
+        row.configure(height=35)
 
         name_label = ctk.CTkLabel(row, text=name, font=("Arial", 12))
         name_label.pack(side="left", padx=10)
@@ -169,24 +200,37 @@ class AddingPage(ctk.CTkFrame):
         # Обновляем список в выпадающем меню
         self.participants_combo_box.configure(values=filtered_values)
 
+    def select_avatar_file(self):
+        # Открывает диалог выбора файла
+        file_path = filedialog.askopenfilename(
+            title="Выберите изображение для аватара",
+            filetypes=(("Изображения", "*.png *.jpg *.jpeg *.gif"), ("Все файлы", "*.*"))
+        )
+
+        if file_path:
+            # Вставляем путь к файлу в ваше поле ввода avatar_url_entry
+            self.avatar_url_entry.delete(0, 'end')
+            self.avatar_url_entry.insert(0, file_path)
+
     def setup_initial_view(self):
         self.grid_rowconfigure(7, minsize=120)
 
-        self.title_label.grid(row=0, column=1, columnspan=2, pady=(40, 20))
+        self.title_label.grid(row=0, column=1, columnspan=2, pady=(10, 15))
 
         self.chat_type_label.grid(row=1, column=1, columnspan=2, pady=(10, 0))
         self.chat_type_choose_menu.grid(row=2, columnspan=2, column=1, pady=10)
 
-        self.chat_name_label.grid(row=3, column=1, columnspan=2, pady=(10, 0))
+        self.chat_name_label.grid(row=3, column=1, columnspan=2, pady=(5, 0))
         self.chat_name_entry.grid(row=4, column=1, columnspan=2, pady=10)
 
-        self.participants_label.grid(row=5, column=1, columnspan=2, pady=(10, 0))
+        self.participants_label.grid(row=5, column=1, columnspan=2, pady=(5, 0))
         self.participants_combo_box.grid(row=6, column=1, columnspan=2, pady=10)
 
         self.participants_list_frame.grid(row=7, column=1, columnspan=2, pady=(5, 10), sticky='n')
 
-        self.avatar_url_label.grid(row=8, column=1, columnspan=2, pady=(10, 0))
-        self.avatar_url_entry.grid(row=9, column=1, columnspan=2, pady=10)
+        self.avatar_url_label.grid(row=8, column=1, columnspan=2, pady=(5, 0))
+        self.avatar_url_entry.grid(row=9, column=1, columnspan=2, pady=10, sticky='w')
+        self.file_button.grid(row=9, column=2, padx=(10, 0), pady=10, sticky='e')
 
         self.error_label.grid(row=10, column=1, columnspan=2, pady=5)
 
