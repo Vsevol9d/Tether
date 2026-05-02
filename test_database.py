@@ -34,19 +34,19 @@ def health_check_users(db):
     # print(db.users.exists(username='Seva'))    # >>> True
     # print(db.users.exists(username='Yura'))    # >>> True
 
-    if not db.users.exists(username='Nikita'):
-        print(db.users.add(name='Никита', username='Nikita', lastname='Соколов',
-                 birthday='12-01-2011', phone='89012345678', email='mail@yandex.ru', password='Nik'))
-    print(db.users.add(name='Сева', username='Seva', lastname=None, birthday=None, phone='89876543210', email=None,
-                       password='Sev'))
-    print(db.users.add(name='Юра', username='Yura', lastname='Мельник', birthday='14-07-2011', phone=None, email=None,
-                       password='Yur'))
+    # if not db.users.exists(username='Nikita'):
+    #     print(db.users.add(name='Никита', username='Nikita', lastname='Соколов',
+    #              birthday='12-01-2011', phone='89012345678', email='mail@yandex.ru', password='Nik'))
+    # print(db.users.add(name='Сева', username='Seva', lastname=None, birthday=None, phone='89876543210', email=None,
+    #                    password='Sev'))
+    # print(db.users.add(name='Юра', username='Yura', lastname='Мельник', birthday='14-07-2011', phone=None, email=None,
+    #                    password='Yur'))
 
     # print(db.users.update(1, 'password', 'Nik'))
     # print(db.users.update(9, 'id', 2))
     # print(db.users.update(10, 'id', 3))
     # print(db.users.update(11, 'id', 4))
-    views()
+    # views()
 
     # isRealId = db.users.exists(id=17)
     # if isRealId:
@@ -76,12 +76,12 @@ def health_check_chats(db):
     #
     # print('-' * 150)
 
-    db.chats.add(name='Разработка немыслимого')
-    db.chats.add(name='ЮН')
-    db.chats.add(name='НС')
-    db.chats.add(name='СЮ')
-    print(db.chats.add(name='СЮh'))
-    views()
+    # db.chats.add(name='Разработка немыслимого')
+    # db.chats.add(name='ЮН')
+    # db.chats.add(name='НС')
+    # db.chats.add(name='СЮ')
+    # print(db.chats.add(name='СЮh'))
+    # views()
 
     # print(db.chats.update(16, 'id', 1))
     # print(db.chats.update(7, 'id', 2))
@@ -105,23 +105,23 @@ def health_check_participants(db):
 
     views()
 
-    db.participants.add(chat_id=1, user_id=1)
-    db.participants.add(chat_id=1, user_id=2)
-    db.participants.add(chat_id=1, user_id=3)
-
-    db.participants.add(chat_id=2, user_id=1)
-    db.participants.add(chat_id=2, user_id=3)
-
-    db.participants.add(chat_id=3, user_id=1)
-    db.participants.add(chat_id=3, user_id=2)
-
-    db.participants.add(chat_id=4, user_id=1)
-    db.participants.add(chat_id=4, user_id=2)
-    db.participants.add(chat_id=4, user_id=3)
+    # db.participants.add(chat_id=1, user_id=1)
+    # db.participants.add(chat_id=1, user_id=2)
+    # db.participants.add(chat_id=1, user_id=3)
+    #
+    # db.participants.add(chat_id=2, user_id=1)
+    # db.participants.add(chat_id=2, user_id=3)
+    #
+    # db.participants.add(chat_id=3, user_id=1)
+    # db.participants.add(chat_id=3, user_id=2)
+    #
+    # db.participants.add(chat_id=4, user_id=1)
+    # db.participants.add(chat_id=4, user_id=2)
+    # db.participants.add(chat_id=4, user_id=3)
     # print(db.participants.add(chat_id=4, user_id=5))
 
     # print(db.participants.update(chat_id=1, user_id=1, attr_name='role', value='Админ'))
-    views()
+    # views()
 
     # print(db.participants.delete(user_id=1 , chat_id=4))
     # views()
@@ -144,25 +144,25 @@ def health_check_messages(db):
     #         print(message)
 
 
-    db.messages.add(chat_id=1, user_id=1, mes_mes_text='Привет всем от Никиты!')
-    db.messages.add(chat_id=1, user_id=2, mes_text='Привет всем от Севы!')
-    db.messages.add(chat_id=1, user_id=3, mes_text='Привет всем от Юры!')
-    db.messages.add(chat_id=2, user_id=3, mes_text='Никит, как дела? (от Юры)')
-    db.messages.add(chat_id=4, user_id=2, mes_text='Юр, как дела? (от Севы)')
-    db.messages.add(chat_id=1, user_id=2, mes_text='Как удалить это сообщение?')
-    db.messages.add(chat_id=1, user_id=1, mes_text='Как вам моя БД?')
-    db.messages.add(chat_id=1, user_id=1, mes_text='Спам')
-    db.messages.add(chat_id=1, user_id=1, mes_text='Спам')
-    db.messages.add(chat_id=1, user_id=2, mes_text='Спам 1')
-    db.messages.add(chat_id=1, user_id=2, mes_text='Спам')
-    db.messages.add(chat_id=1, user_id=2, mes_text='Спам 2')
-    db.messages.add(chat_id=1, user_id=3, mes_text='Спам')
-    db.messages.add(chat_id=1, user_id=3, mes_text='Спам 3')
-    db.messages.add(chat_id=1, user_id=3, mes_text='Спам')
-    db.messages.add(chat_id=1, user_id=1, mes_text='Спам 4')
-    db.messages.add(chat_id=1, user_id=1, mes_text='Спам 5.2')
-    db.messages.add(chat_id=2, user_id=1, mes_text="Дельно")
-    views()
+    # db.messages.add(chat_id=1, user_id=1, mes_mes_text='Привет всем от Никиты!')
+    # db.messages.add(chat_id=1, user_id=2, mes_text='Привет всем от Севы!')
+    # db.messages.add(chat_id=1, user_id=3, mes_text='Привет всем от Юры!')
+    # db.messages.add(chat_id=2, user_id=3, mes_text='Никит, как дела? (от Юры)')
+    # db.messages.add(chat_id=4, user_id=2, mes_text='Юр, как дела? (от Севы)')
+    # db.messages.add(chat_id=1, user_id=2, mes_text='Как удалить это сообщение?')
+    # db.messages.add(chat_id=1, user_id=1, mes_text='Как вам моя БД?')
+    # db.messages.add(chat_id=1, user_id=1, mes_text='Спам')
+    # db.messages.add(chat_id=1, user_id=1, mes_text='Спам')
+    # db.messages.add(chat_id=1, user_id=2, mes_text='Спам 1')
+    # db.messages.add(chat_id=1, user_id=2, mes_text='Спам')
+    # db.messages.add(chat_id=1, user_id=2, mes_text='Спам 2')
+    # db.messages.add(chat_id=1, user_id=3, mes_text='Спам')
+    # db.messages.add(chat_id=1, user_id=3, mes_text='Спам 3')
+    # db.messages.add(chat_id=1, user_id=3, mes_text='Спам')
+    # db.messages.add(chat_id=1, user_id=1, mes_text='Спам 4')
+    # db.messages.add(chat_id=1, user_id=1, mes_text='Спам 5.2')
+    # db.messages.add(chat_id=2, user_id=1, mes_text="Дельно")
+    # views()
     #
     # db.messages.update(21, 'text', '嗨 everyone!')
     # views()
@@ -186,12 +186,12 @@ def health_check_friends(db):
 
     views()
 
-    print(db.friends.add(user_id_1=1, user_id_2=2, level_relationships=4))
-    print(db.friends.add(user_id_1=1, user_id_2=3, level_relationships=2))
+    # print(db.friends.add(user_id_1=1, user_id_2=2, level_relationships=4))
+    # print(db.friends.add(user_id_1=1, user_id_2=3, level_relationships=2))
     # print(db.friends.add(user_id_1=1, user_id_2=4, level_relationships=1))
 
     # print(db.friends.add(user_id_1=3, user_id_2=4, level_relationships=3))
-    views()
+    # views()
 
     # print(db.friends.update(id=[1, 2], attr_name="level_relationships", value=4))
     # views()
