@@ -1,7 +1,6 @@
 from Database.init import Base
 from sqlalchemy import Column, String, Integer, Text, text
 from sqlalchemy.orm import relationship
-import sqlalchemy as sql
 
 
 # Таблица users
@@ -15,7 +14,7 @@ class Users(Base):
     birthday = Column(String(10))
     avatar_url = Column(Text)
     date_created = Column(String(10), nullable=False, server_default=text("to_char(current_date, 'DD-MM-YYYY')"))
-    last_time_online = Column(String(16), nullable=False, server_default=sql.text("to_char(current_timestamp, 'DD-MM-YYYY HH24:MI')"))
+    last_time_online = Column(String(19), nullable=False, server_default=text("to_char(current_timestamp, 'DD-MM-YYYY HH24:MI:SS')"))
     password = Column(String(52), nullable=False)
     phone = Column(String(20), unique=True)
     email = Column(String(254), unique=True)
@@ -24,5 +23,9 @@ class Users(Base):
     chats = relationship("Chats", secondary="participants", back_populates="users", overlaps="participants")
     messages = relationship("Messages", back_populates="sender")
 
+    friend_as_1 = relationship("Friends", back_populates="user1", foreign_keys="[Friends.user_id_1]",
+                               cascade="all, delete-orphan")
+    friend_as_2 = relationship("Friends", back_populates="user2", foreign_keys="[Friends.user_id_2]",
+                               cascade="all, delete-orphan")
     # def __repr__(self):
     #     return f'{self.id, self.name, self.username, self.lastname, self.birthday, self.avatar_url, self.date_created, self.last_time_online, self.phone, self.email}'

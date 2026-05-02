@@ -5,27 +5,24 @@
 Убрать комментарии в Database.models.user на 17 строчке в зависимости наличия postgresql.
 """
 
+# from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
-from inspect import stack  #  Последовательность выполнения кода
 import traceback  #  Подробное описание ошибок
 from functools import wraps
 
 
-connection = ("postgresql://admin:bbqb5ON9TyrL7UwHbITyDT22ILByL0fU@dpg-d76in4hr0fns73cbkjk0-"
-              "a.oregon-postgres.render.com/main_database_4beq")  # Удалённая БД (render.com)
-# connection = "postgresql+psycopg2://postgres:Sokol_12@localhost:5432/postgres"  # Локальная БД
+# connection = ("postgresql://admin:bbqb5ON9TyrL7UwHbITyDT22ILByL0fU@dpg-d76in4hr0fns73cbkjk0-"
+#               "a.oregon-postgres.render.com/main_database_4beq")  # Удалённая синхронная БД (render.com)
+# connection = ("postgresql+asyncpg://admin:bbqb5ON9TyrL7UwHbITyDT22ILByL0fU@dpg-d76in4hr0fns73cbkjk0-"
+#               "a.oregon-postgres.render.com/main_database_4beq")  # Удалённая асинхронная БД (render.com)
+connection = "postgresql+psycopg2://postgres:Sokol_12@localhost:5432/postgres"  # Локальная синхронная БД
+# connection = "postgresql+asyncpg://postgres:Sokol_12@localhost:5432/postgres"  # Локальная асинхронная БД
 engine = create_engine(connection)
+# engine = create_async_engine(connection, future=True)
 Base = declarative_base()
 Session = sessionmaker(bind=engine)
-
-"""
-# Удаление всех таблиц. :)
-from sqlalchemy import MetaData
-metadata = MetaData()
-metadata.reflect(bind=engine)        # загрузить существующие таблицы
-metadata.drop_all(bind=engine)      # удалить все отражённые таблицы
-"""
+# Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
 # Декоратор для обработки ошибок
