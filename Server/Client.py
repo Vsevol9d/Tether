@@ -66,14 +66,15 @@ class Client:
             try:
                 manager_task = asyncio.create_task(self.task_manager.start_tasks(websocket))
                 await asyncio.sleep(0.1)
-                user_input = ["Nikitochka"]
-                # await self.task_manager.start_tasks(websocket)
+                """
+                здесь можно вставлять код, который вызывает задачи запросов БД(и серверу)
+                формат: await self.manager.add_task(function, id_task, websocket, *args)
+                id_task = str(uuid.uuid4())
+                websocket = websocket #это само соединение с сервером
+                
+                пример: await self.manager.add_task(registration, str(uuid.uuid4), websocket, name, username, password)
+                """
 
-                await self.task_manager.add_task(self.auth, str(uuid.uuid4()), websocket, *user_input)
-                user_input = [1, 2, "text", "privet", 3]
-                await self.task_manager.add_task(self.create_message, str(uuid.uuid4()), websocket, *user_input)
-                # print(self.task_manager.current_task)
-                print(self.task_manager.id_response)
                 await  manager_task
             except Exception as e:
                 print(f"Error: {e}")
@@ -87,15 +88,17 @@ class Client:
         else:
             print("Не получилось получить чаты")
 
-    async def create_message(self, id_task, websocket, chat_id, user_id, type, text, file_id):
+    async def create_message(self, id_task, websocket, message_type, text, chat_id, user_id):
         await websocket.send(json.dumps(
-            {"action": "create_message", "id_task": id_task, "params": [chat_id, user_id, type, text, file_id]}))
+            {"action": "create_message", "id_task": id_task, "params": [message_type, text, chat_id, user_id]}))
         while id_task not in self.task_manager.id_response:
             await asyncio.sleep(0.1)
 
         if self.task_manager.id_response[id_task] != "Fall":
+            return "Success"
             print("Сообщение отправлено")  # пометка в ui что сообщение отправлено
         else:
+            return "Error"
             print("Не получилось отправить сообщение")
 
     async def registration(self, id_task, websocket, name, username, password):
@@ -105,11 +108,12 @@ class Client:
         while id_task not in self.task_manager.id_response:
             await asyncio.sleep(0.1)
 
-        if self.task_manager.id_response[id_task] == True:
+        if self.task_manager.id_response[id_task] != "Fall":
             self.user_id = username
             print("ID (nickname) клиента:", self.user_id)
             return self.task_manager.id_response[id_task]
         else:
+            return "Error"
             print("Не удалось создать пользователя")
 
     async def auth(self, id_task, websocket, username, password):
@@ -117,10 +121,11 @@ class Client:
         while id_task not in self.task_manager.id_response:
             await asyncio.sleep(0.1)
 
-        if "Error" not in self.task_manager.id_response[id_task]:
+        if self.task_manager.id_response[id_task] != "Fall":
             self.user_id = username
             return self.task_manager.id_response[id_task]
         else:
+            return "Error"
             print("Ошибка")
 
 
