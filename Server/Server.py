@@ -8,12 +8,12 @@ from Database.api import Session, DataBase
 class Server():
     def __init__(self):
         self.connected_clients = {}
-        self.clients = set()
+        #self.clients = set()
 
         self.action_handlers = {
             "registration" : self.registration,
             "auth" : self.auth,
-            "create_message" : self.create_message,
+            "create_message" : self.send_message,
             "get_chats" : self.get_chats,
             "open_chat" : self.open_chat
         }
