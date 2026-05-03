@@ -1,3 +1,5 @@
+from asyncio import coroutines
+
 import websockets
 import asyncio
 import datetime
@@ -12,14 +14,29 @@ url = "ws://localhost:8765"
 
 class TaskManager():
     def __init__(self):
+        """
+        task_in_progress - задачи в процессе
+        queue_tasks - очередь еще не выполняющихся задач
+        running - запущен ли TaskManager
+        id_response - словарь {id_task : response}
+        """
+
         self.tasks_in_progress = set()  #
         self.queue_tasks = asyncio.Queue()
         self.running = True
         self.id_response = {}
 
-    async def add_task(self, function, id_task, *args, timeout=None):
+    async def add_task(self, function, id_task: str, *args, timeout=None) -> asyncio.Future:
         # print("add_task")
-
+        """
+        Создание задачи и ожидания ответа на неё
+        :param function: функция, которая делается задачей
+        :param id_task: id задачи
+        :param args: входные данные функции
+        :param timeout: время ожидания в секундах
+        :return: сначало asyncio.Future() - заглушка для реального ответа,
+        когда ответ появился, future становится ответом и возвращается результат в основной код
+        """
         future = asyncio.Future()
         self.id_response[id_task] = future
 
@@ -32,12 +49,20 @@ class TaskManager():
         return await future
 
 
-    async def start_tasks(self, websocket):
+    async def start_tasks(self, websocket) -> None:
+        """
+        Запуск TaskManager
+        :param websocket: объект - соединение с пользователем
+        """
+
         # print("TaskManager запущен")
         await asyncio.gather(self.process_task(),
                              self.get_response(websocket))
 
-    async def process_task(self):
+    async def process_task(self) -> None:
+        """
+        Запускает задачи по мере поступления
+        """
         while self.running:
             print(1)
             # print("1")
@@ -58,13 +83,28 @@ class TaskManager():
             self.tasks_in_progress.add(task)
             task.add_done_callback(lambda x: self.remove_task(x))
             # print("Здача запущена")
-    async def run_with_timeout(self, function, id_task, timeout):
+    async def run_with_timeout(self, function, id_task: str, timeout: int):
+        """
+        Ожидает выполнения функции по заданному времени
+
+        :param function: функция
+        :param id_task: id задачи
+        :param timeout: время, после которого задача завершиться
+
+        :return: возвращает awaitable по истечении времени(для запуска внутри другой функции)
+        """
         try:
             return await asyncio.wait_for(function, timeout=timeout)
         except Exception as e:
             print(f"Задача{id_task} завершилась с ошибкой{e}")
 
     async def get_response(self, websocket):
+        """
+        Получает все ответы на задачи от сервера, заменяет future на реальное значение ->
+        -> показывает, что ответ на задачу получен
+
+        :param websocket: объект - соединение с пользователем
+        """
         async for response in websocket:
             t_response = json.loads(response)
             print(t_response)
@@ -77,12 +117,21 @@ class TaskManager():
             #self.id_response[t_response["id_task"]] = t_response["response"]
 
     async def stop(self):
+        """
+        Завершает все задачи принудительно
+        """
         self.running = False
 
         for task in self.tasks_in_progress:
             task.cancel()
 
     def remove_task(self, task):
+        """
+        Callback-функция, удаляет завершившуюся задачу из списка запущенных задач
+
+        :param task: задача
+        Вызывается автоматически при завершении функции
+        """
         if task in self.tasks_in_progress:
             self.tasks_in_progress.remove(task)
 
@@ -91,76 +140,82 @@ class TaskManager():
 # await self.task_manager.add_task(self.methodename, str(uuid.uuid4()), websocket, *input_data)
 class Client:
     def __init__(self):
+        """
+        temp_id - временное id пользователя
+        user_id - постоянное
+        task_manager - TaskManager()
+        """
         self.temp_id = str(uuid.uuid4())  # временный id
         self.user_id = ""  # @nickname
         self.task_manager = TaskManager()
 
     async def connect(self):
+        """
+        Создает соединение с сервером, основное тело клиента
+        """
         async with websockets.connect(url) as websocket:
             print("Подключено")
             try:
                 manager_task = asyncio.create_task(self.task_manager.start_tasks(websocket))
                 await asyncio.sleep(0.1)
-                """
-                здесь можно вставлять код, который вызывает задачи запросов БД(и серверу)
-                формат: await self.manager.add_task(function, id_task, websocket, *args)
-                id_task = str(uuid.uuid4())
-                websocket = websocket #это само соединение с сервером
-                
-                пример: await self.manager.add_task(registration, str(uuid.uuid4), websocket, name, username, password)
-                """
-
+                #
+                #здесь все запуски задач
+                #
                 await  manager_task
             except Exception as e:
                 print(f"Error: {e}")
 
-    async def get_chats(self, id_task, websocket):
-        await websocket.send(json.dumps({"action": "get_chats", "id_task": id_task, "params": []}))
-        """while id_task not in self.task_manager.id_response:
-            await asyncio.sleep(0.1)
-        if self.task_manager.id_response[id_task] != "Fall":
-            return self.task_manager.id_response[id_task]  # возращает чаты
-        else:
-            print("Не получилось получить чаты")"""
+    async def get_chats(self, id_task: str, websocket)->None:
+        """
+        Запрос серверу на получение всех чатов
 
-    async def create_message(self, id_task, websocket, message_type, text, chat_id, user_id):
-        await websocket.send(json.dumps(
-            {"action": "create_message", "id_task": id_task, "params": [message_type, text, chat_id, user_id]}))
-        """while id_task not in self.task_manager.id_response:
-            await asyncio.sleep(0.1)
+        :param id_task: id задачи
+        :param websocket: объект - соединение с пользователем
+        """
+        await websocket.send(
+            json.dumps({"action": "get_chats", "id_task": id_task, "params": []}))
 
-        if self.task_manager.id_response[id_task] != "Fall":
-            return "Success"
-            print("Сообщение отправлено")  # пометка в ui что сообщение отправлено
-        else:
-            return "Error"
-            print("Не получилось отправить сообщение")"""
 
-    async def registration(self, id_task, websocket, name, username, password):
-        # print("Отправка")
+    async def send_message(self, id_task: str, websocket, message_type: str, text: str, chat_id: str, user_id: str)->None:
+        """
+        Запрос серверу на отправку сообщения
+
+        :param id_task: id задачи
+        :param websocket: объект - соединение с пользователем
+        :param message_type: тип сообщения(text, image и другие)
+        :param text: содержимое сообщения(тип - text)
+        :param chat_id: id чата, куда отправляется сообщение
+        :param user_id: id пользователя, который отправил сообщение
+        """
+        await websocket.send(
+            json.dumps({"action": "create_message", "id_task": id_task, "params": [message_type, text, chat_id, user_id]}))
+
+
+    async def registration(self, id_task: str, websocket, name: str, username: str, password: str)->None:
+        """
+        Запрос серверу на регистрацию
+
+        :param id_task: id задачи
+        :param websocket: объект - соединение с пользователем
+        :param name: имя пользователя
+        :param username: username пользователя(уникальное имя)
+        :param password: пароль
+        """
         await websocket.send(
             json.dumps({"action": "registration", "id_task": id_task, "params": [name, username, password]}))
-        """while id_task not in self.task_manager.id_response:
-            await asyncio.sleep(0.1)
 
-        if self.task_manager.id_response[id_task] != "Fall":
-            self.user_id = username
-            print("ID (nickname) клиента:", self.user_id)
-            return self.task_manager.id_response[id_task]
-        else:
-            return "Error"
-            print("Не удалось создать пользователя")"""
+    async def auth(self, id_task: str, websocket, username: str, password: str)->None:
+        """
+        Запрос серверу на авторизацию
 
-    async def auth(self, id_task, websocket, username, password):
-        await websocket.send(json.dumps({"action": "auth", "id_task": id_task, "params": [username, password]}))
-        """while id_task not in self.task_manager.id_response:
-            await asyncio.sleep(0.1)
+        :param id_task: id задачи
+        :param websocket: объект - соединение с пользователем
+        :param username: username пользователя(уникальное имя)
+        :param password: пароль
+        """
+        await websocket.send(
+            json.dumps({"action": "auth", "id_task": id_task, "params": [username, password]}))
 
-        if self.task_manager.id_response[id_task] != "Fall":
-            self.user_id = username
-            return self.task_manager.id_response[id_task]
-        else:
-            return "Error"""
 
 
 if __name__ == "__main__":
