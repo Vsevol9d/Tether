@@ -39,7 +39,7 @@ class App:
         self.current_chat_info = None
         self.is_authorized = False
         self.addable_users_names = []
-        self.addable_users_ids = []
+        self.addable_users = []
 
         # Инициализация классов страниц
         self.start_page = StartPage(self.root)
@@ -63,18 +63,18 @@ class App:
                     participants_list = []
                     participants_names_list = []
 
-                    participants_response = db.participants.select_all()
+                    participants_response = db.select_all_users_by_chat_id(chat_id=chat_id)
                     if participants_response['isSuccess']:
-                        for participant in participants_response['data']:
-                            if participant['chat_id'] == chat_id:
-                                participants_list.append(participant)
-                                name_response = db.select_by_id(id=participant['user_id'])
-                                if name_response['isSuccess']:
-                                    name = name_response['data']['name']
-                                    participants_names_list.append(name)
-                                    if participant['user_id'] not in self.addable_users_ids and participant['user_id'] != self.user['id']:
-                                        self.addable_users_names.append(name)
-                                        self.addable_users_ids.append(participant['user_id'])
+                        for user in participants_response['data']:
+                            print(user)
+                            participants_list.append(user)
+                            name = user['name']
+                            participants_names_list.append(name)
+                            if user not in self.addable_users and user['id'] != self.user['id']:
+                                self.addable_users_names.append(name)
+                                self.addable_users.append(user)
+                    else:
+                        error = ErrorHandler(self.root, participants_response['error'])
 
                     # Получаем сообщения по id чата
                     messages = db.select_all_messages_by_chat_id(chat_id=chat_id)
@@ -89,7 +89,7 @@ class App:
                                                          'participants': participants_list, 'participants_names': participants_names_list}
 
                     else:
-                        print('Если вы видите это, значит знайте: это ошибка')
+                        error = ErrorHandler(self.root, messages['error'])
             for chat_id in self.available_chats:
                 chat = self.available_chats[chat_id]
                 self.add_selectable_chat_view(chat_id, DEFAULT_AVATAR_PATH, chat['name'], chat['last_message'])
@@ -103,7 +103,7 @@ class App:
         self.current_page = self.sign_up_page
 
     def switch_to_adding_page(self) -> None:
-        self.adding_page = AddingPage(self.root, self.switch_to_chatting_page, self.on_chat_adding_submit, self.addable_users_names)
+        self.adding_page = AddingPage(self.root, self.switch_to_chatting_page, self.on_chat_adding_submit, self.addable_users, self.addable_users_names)
         self.current_page.hide()
         self.adding_page.show()
         self.current_page = self.adding_page
@@ -119,16 +119,21 @@ class App:
     def on_chat_adding_submit(self) -> None:
         chat_type = self.adding_page.chat_type_choose_menu.get()
         chat_name = self.adding_page.chat_name_entry.get()
-        participants = self.adding_page.selected_users
-        participants_count = len(participants)
+        participants_list = self.adding_page.selected_users_data
+        participants_names_list = self.adding_page.selected_users_names
+        participants_count = len(participants_list)
         avatar_url = self.adding_page.avatar_url_entry.get()
         if avatar_url == '':
             avatar_url = DEFAULT_AVATAR_PATH
 
-        if chat_name != '' and participants:
-            chat_response = db.chats.add(name=chat_name, avatar_url=avatar_url)
+        if chat_name != '' and participants_list:
+            chat_response = db.chats.add(type=chat_type, name=chat_name, avatar_url=avatar_url)
             if chat_response['isSuccess']:
-                self.add_selectable_chat_view(avatar_url, chat_name, 'Начните общение')
+                chat_id = chat_response['data']['id']
+                self.available_chats[chat_id] = {'name': chat_name, 'last_message': 'Начните общение!',
+                                                 'messages': [], 'participants_count': participants_count,
+                                                 'participants': participants_list, 'participants_names': participants_names_list}
+                self.add_selectable_chat_view(chat_id, avatar_url, chat_name, 'Начните общение')
                 self.switch_to_chatting_page()
         else:
                 self.adding_page.error_callback('Проверьте заполненность полей!')
@@ -178,8 +183,11 @@ class App:
                 sender_response = db.select_by_id(id=message['user_id'])
                 if sender_response['isSuccess']:
                     sender_name = sender_response['data']['name']
-                if sender_name == self.user['name']:
-                    sender_name = 'Вы'
+                    if sender_name == self.user['name']:
+                        sender_name = 'Вы'
+                else:
+                    sender_name = ''
+                    error = ErrorHandler(self.root, sender_response['error'])
                 self.add_message_view(content_type, content, sender_name)
 
 #################################################################################################
@@ -263,9 +271,6 @@ class App:
     def initialize(self):
         self.start_page.show()
         self.root.after(2000, self.switch_to_sign_up_page)
-
-        # Тест окна для отображения ошибок
-        # error = ErrorHandler(self.root, 'Ошибка!')
 
     def run(self):
         self.initialize()

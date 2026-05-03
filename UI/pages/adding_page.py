@@ -2,7 +2,7 @@ import customtkinter as ctk
 from tkinter import filedialog
 
 class AddingPage(ctk.CTkScrollableFrame):
-    def __init__(self, master, back_to_chats, on_chat_adding_submit, addable_users):
+    def __init__(self, master, back_to_chats, on_chat_adding_submit, addable_users, addable_users_names):
         # Инициализируем как CTkFrame
         super().__init__(master, corner_radius=0)
 
@@ -11,8 +11,15 @@ class AddingPage(ctk.CTkScrollableFrame):
 
         self.returning = back_to_chats
         self.submitting = on_chat_adding_submit
-        self.users_names = addable_users
         self.master = master
+
+        self.users = addable_users
+        self.users_names = addable_users_names
+        # Создаем маппинг "Имя" -> "Объект пользователя"
+        self.user_mapping = dict(zip(self.users_names, self.users))
+
+        self.selected_users_data = []  # Список для хранения объектов/ID выбранных пользователей
+        self.selected_users_names = []  # Список только для имен (для проверок)
 
         self.selected_users = []  # Список строк (имен)
         self.user_widgets = []  # Список созданных виджетов (фреймов со строками)
@@ -144,11 +151,15 @@ class AddingPage(ctk.CTkScrollableFrame):
         self._parent_canvas.yview_scroll(int(-1 * (event.delta / 6)), "units")
 
     def add_participant(self, choice):
-        if choice and choice not in self.selected_users and choice in self.users_names:
-            self.selected_users.append(choice)
+        if choice and choice not in self.selected_users_names and choice in self.user_mapping:
+            # Получаем полные данные пользователя по имени
+            user_data = self.user_mapping[choice]
+
+            self.selected_users_names.append(choice)
+            self.selected_users_data.append(user_data)
+
             self.render_user_row(choice)
 
-        # Очищаем поле и возвращаем полный список для следующего поиска
         self.participants_combo_box.set("")
         self.participants_combo_box.configure(values=self.users_names)
 
@@ -179,8 +190,10 @@ class AddingPage(ctk.CTkScrollableFrame):
         self.user_widgets.append(row)
 
     def remove_user(self, name, row_widget):
-        if name in self.selected_users:
-            self.selected_users.remove(name)
+        if name in self.selected_users_names:
+            index = self.selected_users_names.index(name)
+            self.selected_users_names.pop(index)
+            self.selected_users_data.pop(index)
         row_widget.destroy()
 
     def filter_users(self, event):
