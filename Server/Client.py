@@ -217,7 +217,6 @@ class Client:
             json.dumps({"action": "auth", "id_task": id_task, "params": [username, password]}))
 
 
-
 if __name__ == "__main__":
     client = Client()
     asyncio.run(client.connect())

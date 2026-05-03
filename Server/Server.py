@@ -7,6 +7,11 @@ from Database.api import Session, DataBase
 
 class Server():
     def __init__(self):
+        """
+        connected_clients - словарь {id_user : websocket}
+        action_handlers - типы запросов от клиентов и вызов в зависимости от этого функцию
+        """
+
         self.connected_clients = {}
         #self.clients = set()
 
@@ -18,7 +23,7 @@ class Server():
             "open_chat" : self.open_chat
         }
 
-    async def handler(self, websocket):
+    async def handler(self, websocket)->None:
         try:
             print("Подключено")
             async for message in websocket:
