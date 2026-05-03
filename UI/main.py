@@ -31,7 +31,7 @@ class App:
     def __init__(self):
         self.root = ctk.CTk()
         self.root.geometry("800x600")
-        self.root.title("Communicator")
+        self.root.title("Tether")
 
         self.user = None
         self.available_chats = {}
@@ -66,7 +66,6 @@ class App:
                     participants_response = db.select_all_users_by_chat_id(chat_id=chat_id)
                     if participants_response['isSuccess']:
                         for user in participants_response['data']:
-                            print(user)
                             participants_list.append(user)
                             name = user['name']
                             participants_names_list.append(name)
@@ -85,7 +84,7 @@ class App:
 
                         # Создаём словарь с доступными чатами и необходимой информацией
                         self.available_chats[chat_id] = {'name': chat_name, 'last_message': last_message,
-                                                         'messages': messages_list, 'participants_count': len(participants_list),
+                                                         'participants_count': len(participants_list),
                                                          'participants': participants_list, 'participants_names': participants_names_list}
 
                     else:
@@ -131,7 +130,7 @@ class App:
             if chat_response['isSuccess']:
                 chat_id = chat_response['data']['id']
                 self.available_chats[chat_id] = {'name': chat_name, 'last_message': 'Начните общение!',
-                                                 'messages': [], 'participants_count': participants_count,
+                                                 'participants_count': participants_count,
                                                  'participants': participants_list, 'participants_names': participants_names_list}
                 self.add_selectable_chat_view(chat_id, avatar_url, chat_name, 'Начните общение')
                 self.switch_to_chatting_page()
@@ -165,7 +164,6 @@ class App:
         if self.current_chat_info is None or chat_id != self.current_chat_info['id']:
             chat_type = 'group'  # В будущем изменить
             chat_name = self.available_chats[chat_id]['name']
-            chat_messages = self.available_chats[chat_id]['messages']
             chat_participants_count = self.available_chats[chat_id]['participants_count']
             chat_participants_names = self.available_chats[chat_id]['participants_names']
 
@@ -173,22 +171,27 @@ class App:
 
             self.add_chat_view('group', chat_name, chat_participants_count)
 
-            for message in chat_messages:
-                if message['file_id'] is not None:
-                    content_type = 'image'
-                    content = 'Пока без картинок'
-                else:
-                    content_type = 'text'
-                    content = message['text']
-                sender_response = db.select_by_id(id=message['user_id'])
-                if sender_response['isSuccess']:
-                    sender_name = sender_response['data']['name']
-                    if sender_name == self.user['name']:
-                        sender_name = 'Вы'
-                else:
-                    sender_name = ''
-                    error = ErrorHandler(self.root, sender_response['error'])
-                self.add_message_view(content_type, content, sender_name)
+            chat_messages = db.select_all_messages_by_chat_id(chat_id=chat_id)
+            if chat_messages['isSuccess']:
+                for message in chat_messages['data']:
+                    if message['file_id'] is not None:
+                        content_type = 'image'
+                        content = 'Пока без картинок'
+                    else:
+                        content_type = 'text'
+                        content = message['text']
+
+                    sender_response = db.select_by_id(id=message['user_id'])
+                    if sender_response['isSuccess']:
+                        sender_name = sender_response['data']['name']
+                        if sender_response['data']['id'] == self.user['id']:
+                            sender_name = 'Вы'
+                    else:
+                        sender_name = ''
+                        error = ErrorHandler(self.root, sender_response['error'])
+                    self.add_message_view(content_type, content, sender_name)
+            else:
+                error = ErrorHandler(self.root, chat_messages['error'])
 
 #################################################################################################
     # Методы добавление UI
