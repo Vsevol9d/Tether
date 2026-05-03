@@ -23,6 +23,8 @@ class Server():
             "open_chat" : self.open_chat
         }
 
+        self.notice = {} # user_id : notice[textNotice]
+
     async def handler(self, websocket)->None:
         """
         Функция связи с отдельным пользователем
@@ -129,10 +131,29 @@ class Server():
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
 
-    async def send_notifications(self, user_id, text_notice):
-        await websockets.send(json.dumps({"id_task": "notification", "response": "text_notice"}))
+    def add_notice(self, user_id: str, text: str)->None:
+        """
+        Добавляет уведомление в список уведомлений на отправку
+        :param user_id: id пользователя
+        :param text: текст уведомления
+        """
+        self.notice[user_id].append(text)
 
-    async def start_server(self):
+    async def send_notifications(self, user_id: str)->None:
+        """
+        Отправляет уведомления пользователю
+
+        :param user_id: id пользователя
+        """
+        n_to_r = []
+        for n in self.notice[user_id]:
+            n_to_r.append(n)
+            await self.connected_clients[user_id].send(json.dumps({"id_task": "notification", "response": "text_notice"}))
+        for n in n_to_r:
+            self.notice[user_id].remove(n)
+
+
+    async def start_server(self)->None:
         async with websockets.serve(self.handler, "localhost", 8765):
             print("Server started")
             await asyncio.Future()

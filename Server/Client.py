@@ -227,6 +227,8 @@ class Client:
         await websocket.send(
             json.dumps({"action": "auth", "id_task": id_task, "params": [username, password]}))
 
+    async def get_notification(self, id_task: str, websocket, mesNote: str)->None:
+        pass
 
 if __name__ == "__main__":
     client = Client()
