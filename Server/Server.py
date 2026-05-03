@@ -81,7 +81,8 @@ class Server():
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
 
-
+    async def send_notifications(self, user_id, text_notice):
+        await websockets.send(json.dumps({"id_task": "notification", "response": "text_notice"}))
 
     async def start_server(self):
         async with websockets.serve(self.handler, "localhost", 8765):

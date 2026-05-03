@@ -4,6 +4,9 @@ import datetime
 import uuid
 import json
 
+from sqlalchemy.testing import future
+from sqlalchemy.util import await_only
+
 url = "ws://localhost:8765"
 
 
@@ -14,11 +17,20 @@ class TaskManager():
         self.running = True
         self.id_response = {}
 
-    async def add_task(self, function, id_task, *args):
+    async def add_task(self, function, id_task, *args, timeout=None):
         # print("add_task")
-        self.task_info = {"function": function, "id_task": id_task, "params": args}
+
+        future = asyncio.Future()
+        self.id_response[id_task] = future
+
+        self.task_info = {"function": function,
+                          "id_task": id_task,
+                          "params": args,
+                          "timeout" : timeout}
         self.current_task = True
         await self.queue_tasks.put(self.task_info)
+        return await future
+
 
     async def start_tasks(self, websocket):
         # print("TaskManager запущен")
@@ -35,17 +47,40 @@ class TaskManager():
             function = task_info["function"]
             id_task = task_info["id_task"]
             params = task_info["params"]
-            task = asyncio.create_task(function(id_task, *params))
+            timeout = task_info.get("timeout")
+            if timeout:
+                task = asyncio.create_task(
+                    self.run_with_timeout(function(id_task, *params), id_task, timeout)
+                )
+            else:
+                task = asyncio.create_task(function(id_task, *params))
             # print("3")
             self.tasks_in_progress.add(task)
             task.add_done_callback(lambda x: self.remove_task(x))
             # print("Здача запущена")
+    async def run_with_timeout(self, function, id_task, timeout):
+        try:
+            return await asyncio.wait_for(function, timeout=timeout)
+        except Exception as e:
+            print(f"Задача{id_task} завершилась с ошибкой{e}")
 
     async def get_response(self, websocket):
         async for response in websocket:
             t_response = json.loads(response)
             print(t_response)
-            self.id_response[t_response["id_task"]] = t_response["response"]
+            if t_response["id_task"] in self.id_response:
+                future = self.id_response[t_response["id_task"]]
+                if not future.done():
+                    future.set_result(t_response["response"])
+
+                del self.id_response[t_response["id_task"]]
+            #self.id_response[t_response["id_task"]] = t_response["response"]
+
+    async def stop(self):
+        self.running = False
+
+        for task in self.tasks_in_progress:
+            task.cancel()
 
     def remove_task(self, task):
         if task in self.tasks_in_progress:
@@ -81,17 +116,17 @@ class Client:
 
     async def get_chats(self, id_task, websocket):
         await websocket.send(json.dumps({"action": "get_chats", "id_task": id_task, "params": []}))
-        while id_task not in self.task_manager.id_response:
+        """while id_task not in self.task_manager.id_response:
             await asyncio.sleep(0.1)
         if self.task_manager.id_response[id_task] != "Fall":
             return self.task_manager.id_response[id_task]  # возращает чаты
         else:
-            print("Не получилось получить чаты")
+            print("Не получилось получить чаты")"""
 
     async def create_message(self, id_task, websocket, message_type, text, chat_id, user_id):
         await websocket.send(json.dumps(
             {"action": "create_message", "id_task": id_task, "params": [message_type, text, chat_id, user_id]}))
-        while id_task not in self.task_manager.id_response:
+        """while id_task not in self.task_manager.id_response:
             await asyncio.sleep(0.1)
 
         if self.task_manager.id_response[id_task] != "Fall":
@@ -99,13 +134,13 @@ class Client:
             print("Сообщение отправлено")  # пометка в ui что сообщение отправлено
         else:
             return "Error"
-            print("Не получилось отправить сообщение")
+            print("Не получилось отправить сообщение")"""
 
     async def registration(self, id_task, websocket, name, username, password):
         # print("Отправка")
         await websocket.send(
             json.dumps({"action": "registration", "id_task": id_task, "params": [name, username, password]}))
-        while id_task not in self.task_manager.id_response:
+        """while id_task not in self.task_manager.id_response:
             await asyncio.sleep(0.1)
 
         if self.task_manager.id_response[id_task] != "Fall":
@@ -114,19 +149,18 @@ class Client:
             return self.task_manager.id_response[id_task]
         else:
             return "Error"
-            print("Не удалось создать пользователя")
+            print("Не удалось создать пользователя")"""
 
     async def auth(self, id_task, websocket, username, password):
         await websocket.send(json.dumps({"action": "auth", "id_task": id_task, "params": [username, password]}))
-        while id_task not in self.task_manager.id_response:
+        """while id_task not in self.task_manager.id_response:
             await asyncio.sleep(0.1)
 
         if self.task_manager.id_response[id_task] != "Fall":
             self.user_id = username
             return self.task_manager.id_response[id_task]
         else:
-            return "Error"
-            print("Ошибка")
+            return "Error"""
 
 
 if __name__ == "__main__":
