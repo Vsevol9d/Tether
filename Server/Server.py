@@ -24,6 +24,12 @@ class Server():
         }
 
     async def handler(self, websocket)->None:
+        """
+        Функция связи с отдельным пользователем
+        :param websocket: объект - соединение с пользователем(не для заполнения аргумент)
+
+        Экземпляр функции создается для КАЖДОГО отдельного клиента
+        """
         try:
             print("Подключено")
             async for message in websocket:
@@ -35,32 +41,57 @@ class Server():
             for c in self.connected_clients:
                 c.close()
 
-    async def registration(self, id_task, websocket, name, username, password):
+    async def registration(self, id_task: str, websocket, name: str, username: str, password: str)->None:
+        """
+        Функция регистрации пользователя в БД
+
+        :param id_task: id задачи
+        :param websocket: объект - соединение с пользователем
+        :param name: имя пользователя
+        :param username: username пользователя(уникальное имя)
+        :param password: пароль
+        """
         try:
             out = db.users.exists("username", username)
             if not out:
                 out = db.users.add(name=name, username=username, password=password)
                 #out = добавление пользователя в БД, получить словарь или ошибку
-                pass
             #out = db.users.exists("username", username) # здесь вызвать метода проверки возможности добавления пользователя с пааметрами name, username, lastname (они будут равны = ["Никита2", "Nikitka", "Соколов2"])
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
         except Exception as e:
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": f"Error: {e}"}))
 
-    async def auth(self, id_task, websocket, username, password):
+    async def auth(self, id_task: str, websocket, username: str, password: str)->None:
+        """
+        Функция авторизации пользователя
+
+        :param id_task: id задачи
+        :param websocket: объект - соединение с пользователем
+        :param username: username пользователя(уникальное имя)
+        :param password: пароль
+        """
         try:
             # проверка на свопадения пароля с паролем username out = db.users.exists("username", username)
 
             out = db.users.exists(username=username, password=password)
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
             self.connected_clients[username] = websocket
-            self.clients.add(websocket)
         except Exception as e:
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": f"Fall"}))
 
-    async def send_message(self, id_task, websocket, message_type, text, chat_id, user_id):
+    async def send_message(self, id_task: str, websocket, message_type: str, text: str, chat_id: str, user_id: str):
+        """
+        Функция отправки сообщения
+
+        :param id_task: id задачи
+        :param websocket: объект - соединение с пользователем
+        :param message_type: тип сообщения(text, image и другие)
+        :param text: содержимое сообщения(тип - text)
+        :param chat_id: id чата, куда отправляется сообщение
+        :param user_id: id пользователя, который отправил сообщение
+        """
         try:
             out = db.messages.add(message_type=message_type, text=text, chat_id=chat_id, user_id=user_id)
 
@@ -70,7 +101,13 @@ class Server():
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
 
-    async def get_chats(self, id_task, websocket):
+    async def get_chats(self, id_task: str, websocket)->None:
+        """
+        Получение всех чатов
+
+        :param id_task: id задачи
+        :param websocket: объект - соединение с пользователем
+        """
         try:
             chats = {}#чаты из БД
             await websocket.send(json.dumps({"id_task": id_task, "response" : chats}))
@@ -78,7 +115,13 @@ class Server():
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
 
-    async def open_chat(self, id_task, websocket, user_id):
+    async def open_chat(self, id_task: str, websocket, user_id: str)->None:
+        """
+        Получение данных чата(?)
+        :param id_task: id задачи
+        :param websocket: объект - соединение с пользователем
+        :param user_id: id пользователя
+        """
         try:
             out = db.users.exists("")
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
@@ -93,8 +136,6 @@ class Server():
         async with websockets.serve(self.handler, "localhost", 8765):
             print("Server started")
             await asyncio.Future()
-
-
 
 
 with Session() as session:

@@ -190,6 +190,17 @@ class Client:
         await websocket.send(
             json.dumps({"action": "create_message", "id_task": id_task, "params": [message_type, text, chat_id, user_id]}))
 
+    async def open_chat(self, id_task: str, websocket, user_id: str)->None:
+        """
+        Запрос серверу на получение чата(?)
+
+        :param id_task: id задачи
+        :param websocket: объект - соединение с пользователем
+        :param user_id: id пользователя
+        """
+        await websocket.send(
+            json.dumps({"action": "open_chat", "id_task": id_task, "params": [user_id]})
+        )
 
     async def registration(self, id_task: str, websocket, name: str, username: str, password: str)->None:
         """
