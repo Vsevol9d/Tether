@@ -9,7 +9,7 @@ import json
 from sqlalchemy.testing import future
 from sqlalchemy.util import await_only
 
-url = "ws://localhost:8765"
+url = "https://tether-ie6q.onrender.com"
 
 
 class TaskManager():
