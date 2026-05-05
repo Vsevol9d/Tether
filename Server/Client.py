@@ -108,12 +108,16 @@ class TaskManager():
         async for response in websocket:
             t_response = json.loads(response)
             print(t_response)
+
             if t_response["id_task"] in self.id_response:
                 future = self.id_response[t_response["id_task"]]
                 if not future.done():
                     future.set_result(t_response["response"])
 
                 del self.id_response[t_response["id_task"]]
+
+
+
             #self.id_response[t_response["id_task"]] = t_response["response"]
 
     async def stop(self):
@@ -146,8 +150,9 @@ class Client:
         task_manager - TaskManager()
         """
         self.temp_id = str(uuid.uuid4())  # временный id
-        self.user_id = ""  # @nickname
+        self.user_id = ""  # @user_id
         self.task_manager = TaskManager()
+        self.notifications = set()
 
     async def connect(self):
         """
@@ -227,8 +232,22 @@ class Client:
         await websocket.send(
             json.dumps({"action": "auth", "id_task": id_task, "params": [username, password]}))
 
-    async def get_notification(self, id_task: str, websocket, mesNote: str)->None:
-        pass
+    async def get_notification(self, id_task: str, websocket, user_id: str)->None:
+        """
+        Запрос на получение уведомлений пользователю
+
+        :param id_task: id задачи
+        :param websocket: объект - соединение с пользователем
+        :param user_id: id пользователя
+        """
+        await websocket.send(
+            json.dumps({"action" : "get_notifications", "id_task": id_task, "params": [user_id]}))
+
+    async def clear_note(self)->None:
+        """
+        Отчищает список уведомлений
+        """
+        self.notifications.clear()
 
 if __name__ == "__main__":
     client = Client()

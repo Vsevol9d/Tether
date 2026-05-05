@@ -10,9 +10,11 @@ class Server():
         """
         connected_clients - словарь {id_user : websocket}
         action_handlers - типы запросов от клиентов и вызов в зависимости от этого функцию
+        notice - словарь {user_id : список сообщений-уведомлений}
         """
 
         self.connected_clients = {}
+
         #self.clients = set()
 
         self.action_handlers = {
@@ -20,7 +22,8 @@ class Server():
             "auth" : self.auth,
             "create_message" : self.send_message,
             "get_chats" : self.get_chats,
-            "open_chat" : self.open_chat
+            "open_chat" : self.open_chat,
+            "get_notifications" : self.get_notifications
         }
 
         self.notice = {} # user_id : notice[textNotice]
@@ -97,7 +100,8 @@ class Server():
         try:
             out = db.messages.add(message_type=message_type, text=text, chat_id=chat_id, user_id=user_id)
 
-            #создание сообщения, добавлен е его в чат БД
+
+            #добавить уведомление пользователям
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
         except Exception as e:
             print(f"Error: {e}")
@@ -134,23 +138,26 @@ class Server():
     def add_notice(self, user_id: str, text: str)->None:
         """
         Добавляет уведомление в список уведомлений на отправку
+
         :param user_id: id пользователя
         :param text: текст уведомления
         """
+        if user_id not in self.notice:
+            self.notice[user_id] = []
+
         self.notice[user_id].append(text)
 
-    async def send_notifications(self, user_id: str)->None:
+    async def get_notifications(self, id_task: str, websocket, user_id: str)->None:
         """
         Отправляет уведомления пользователю
 
+        :param id_task: id задачи
+        :param websocket: объект - соединение с пользователем
         :param user_id: id пользователя
         """
-        n_to_r = []
-        for n in self.notice[user_id]:
-            n_to_r.append(n)
-            await self.connected_clients[user_id].send(json.dumps({"id_task": "notification", "response": "text_notice"}))
-        for n in n_to_r:
-            self.notice[user_id].remove(n)
+
+        await websocket.send(
+            json.dumps({"id_task" : id_task, "response" : self.notice[user_id]}))
 
 
     async def start_server(self)->None:
