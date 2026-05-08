@@ -277,7 +277,7 @@ class App:
             is_existing = db.users.exists(username=username, password=password)
             if is_existing:
                 # Получение словаря в user_response['data'], где есть id и name
-                login_response = db.select_by_username(username=username)
+                login_response = db.select_user_by_username(username=username)
                 if login_response['isSuccess']:
                     self.user = login_response['data']
 
