@@ -116,8 +116,6 @@ class TaskManager():
 
                 del self.id_response[t_response["id_task"]]
 
-
-
             #self.id_response[t_response["id_task"]] = t_response["response"]
 
     async def stop(self):

@@ -23,7 +23,7 @@ class Server():
             "create_message" : self.send_message,
             "get_chats" : self.get_chats,
             "open_chat" : self.open_chat,
-            "get_notifications" : self.get_notifications
+            "get_notifications" : self.give_notifications
         }
 
         self.notice = {} # user_id : notice[textNotice]
@@ -148,7 +148,7 @@ class Server():
 
         self.notice[user_id].append(text)
 
-    async def get_notifications(self, id_task: str, websocket, user_id: str)->None:
+    async def give_notifications(self, id_task: str, websocket, user_id: str)->None:
         """
         Отправляет уведомления пользователю
 
@@ -170,12 +170,11 @@ class Server():
 with Session() as session:
     db = DataBase(session)
     try:
-        with session.begin():  # ← одна транзакция на всё
-                # РАБОЧАЯ ЧАСТЬ
-                #db.users.exists("username")
-                if __name__ == "__main__":
-                    server = Server()
-                    asyncio.run(server.start_server())
+        # РАБОЧАЯ ЧАСТЬ
+        #db.users.exists("username")
+        if __name__ == "__main__":
+            server = Server()
+            asyncio.run(server.start_server())
     except Exception as e:
         print(f"Ошибка: {e}")
 
