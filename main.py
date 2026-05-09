@@ -1,26 +1,38 @@
-import os
-from fastapi import FastAPI
-from sqlalchemy import create_engine, text
+# main.py
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse # Для отображения чего-то на сайте (нужно максимум для отладки)
+from pydantic import BaseModel
+from Database.api import Session, DataBase
 
 app = FastAPI()
 
-# Берем URL из Render (внутри Render он будет внутренним, снаружи - внешним)
-DATABASE_URL = os.environ.get("DATABASE_URL")
-
-if not DATABASE_URL:
-    raise RuntimeError("Переменная DATABASE_URL не найдена!")
-
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-
+# 🔹 Новый эндпоинт для браузера / тестов
 @app.get("/")
 def read_root():
-    return {"message": "Server is running!"}
+    # return {
+    #     "status": "OK",
+    #     "message": "Tether API is running 🚀",
+    #     "docs": "Открой /docs для интерактивной документации"
+    # }
+    html_content = ('<p>"status": "OK"</p>'
+                    '<p>"message": "Tether API запускается"</p>'
+                    '<p>"docs": "Открой <a href="/docs">/docs</a> для интерактивной документации"</p>')
+    return HTMLResponse(content=html_content)
 
-@app.get("/test-db")
-def test_db():
+# 🔹 Твой существующий эндпоинт
+class CommandRequest(BaseModel):
+    command: str
+    username: str
+
+@app.post("/api/check-user")
+def check_user(request: CommandRequest):
     try:
-        with engine.connect() as conn:
-            result = conn.execute(text("SELECT version();"))
-            return {"db_status": "OK", "version": result.scalar()}
+        with Session() as session:
+            db = DataBase(session)
+            if request.command == "exists":
+                result = db.users.exists(username=request.username)
+                return result
+            else:
+                raise ValueError(f"Неизвестная команда: {request.command}")
     except Exception as e:
-        return {"db_status": "ERROR", "error": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
