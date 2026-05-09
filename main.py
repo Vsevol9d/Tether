@@ -56,9 +56,9 @@ class Server():
         :param password: пароль
         """
         try:
-            out = db.users.exists("username", username)
+            out = self.db.users.exists("username", username)
             if not out:
-                out = db.users.add(name=name, username=username, password=password)
+                out = self.db.users.add(name=name, username=username, password=password)
                 # out = добавление пользователя в БД, получить словарь или ошибку
             # out = db.users.exists("username", username) # здесь вызвать метода проверки возможности добавления пользователя с пааметрами name, username, lastname (они будут равны = ["Никита2", "Nikitka", "Соколов2"])
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
@@ -78,7 +78,7 @@ class Server():
         try:
             # проверка на свопадения пароля с паролем username out = db.users.exists("username", username)
 
-            out = db.users.exists(username=username, password=password)
+            out = self.db.users.exists(username=username, password=password)
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
             self.connected_clients[username] = websocket
         except Exception as e:
@@ -97,7 +97,7 @@ class Server():
         :param user_id: id пользователя, который отправил сообщение
         """
         try:
-            out = db.messages.add(message_type=message_type, text=text, chat_id=chat_id, user_id=user_id)
+            out = self.db.messages.add(message_type=message_type, text=text, chat_id=chat_id, user_id=user_id)
 
             # добавить уведомление пользователям
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
@@ -127,7 +127,7 @@ class Server():
         :param user_id: id пользователя
         """
         try:
-            out = db.users.exists("")
+            out = self.db.users.exists("")
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
         except Exception as e:
             print(f"Error: {e}")
