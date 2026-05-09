@@ -41,21 +41,28 @@ class BasicMethods(Generic[T]):
         return getattr(self.model, attr_name)
 
     @catching_errors()
-    def exists(self, **kwargs: Any) -> bool:
+    def exists(self, **kwargs: Any) -> dict:
         """
-        Проверка существования строки по набору колонка=значение,
-        например: exists(id=1, name='Nik')
-        :return: булевое значение
+        Проверка существования значения в определённой строке таблицы
+
+        За параметры функции брать названия колонок в таблице.
+        За аргументы - значения, нуждающийся в проверке наличия в данной колонке.
+        Например: exists(username='Nikita', name='Nik')
+
+        :return: isSuccess, гда data содержит:
+           True, если значение существует.
+           False, если значение не существует, или неверное имя колонки.
+        Например: {'isSuccess': True, 'data': False}
         """
 
         conditions = []
         for attr_name, value in kwargs.items():
             column = self._get_column(attr_name)
-            if column is None: return False
+            if column is None: return {'isSuccess': True, 'data': False}
             conditions.append(column == value)
 
         stmt = select(self.model).where(and_(*conditions))
-        return self.session.execute(stmt).scalar() is not None
+        return {'isSuccess': True, 'data': self.session.execute(stmt).scalar() is not None}
 
     @catching_errors()
     def _get_dict(self, raw_users: Sequence[list]) -> list[dict]:
@@ -77,7 +84,11 @@ class BasicMethods(Generic[T]):
     @catching_errors()
     def add(self, **kwargs) -> dict:
         """
-        Добавление пользователя в таблицу
+        Добавляет новую строку с данными в соответствующую таблицу.
+
+        :param kwargs: За параметры функции брать названия колонок в таблице. За аргументы - значения, нуждающийся во вставке в эту колонку. Исключениями (ОНИ ВЕЗДЕ!) являются колонки "id", "date_created", "creation_date_time", "joined_at".
+
+        :return: Словарь isSuccess, где data содержит стандартный словарь, но без колонок-исключений и все значения, указанные как *None* и имеющие значение по умолчанию, вернут *None*
         """
         self.session.add(self.model(**kwargs))
         print(f'Запись в таблице {self.model.__name__} добавлена с параметрами {kwargs}')
@@ -86,17 +97,23 @@ class BasicMethods(Generic[T]):
     @catching_errors()
     def select_all(self) -> dict:
         """
-        Вывод всех значений всех пользователей
-        :return: список классов таблицы
+        Получает все строки в таблице.
+
+        :return: isSuccess, где data содержит список строк, представленных в виде словарей.
         """
         raw_users = self.session.scalars(select(self.model)).all()
         structured_users = self._get_dict(raw_users)
         return {'isSuccess': True, 'data': structured_users}
 
     @catching_errors()
-    def update(self, id: int | list, attr_name: str, value: Any,) -> dict:
+    def update(self, id: int | list, attr_name: str, value: Any) -> dict:
         """
-        Обновление у пользователя с id = id атрибута attr_name на значение value
+        Обновляет строчку в таблице, через её id.
+
+        :param id: Первичный ключ строки. Если ПК у строки 2 и более, то брать их все через список.
+        :param attr_name: Название колонки, значение которой нужно обновить.
+        :param value: Значение, на которое нужно обновить поле.
+        :return: isSuccess без data ({'isSuccess': True}).
         """
 
         instance = self.session.get(self.model, id)
@@ -108,7 +125,10 @@ class BasicMethods(Generic[T]):
     @catching_errors()
     def delete(self, *id: list[int | tuple[int, int]]) -> dict:
         """
-        Удаление записи с id = id
+        Удаляет строчку в таблице, через её id.
+
+        :param id: Первичный ключ строки. Если ПК у строки 2 и более, то брать их все через список.
+        :return: isSuccess без data.
         """
 
         ids = id if len(id) > 1 else id[0]
