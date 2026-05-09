@@ -11,7 +11,9 @@ from sqlalchemy.util import await_only
 
 url = "wss://tether-jj4v.onrender.com/ws"
 
-
+name = ""
+username = ""
+password = ""
 class TaskManager():
     def __init__(self):
         """
@@ -163,6 +165,8 @@ class Client:
             try:
                 manager_task = asyncio.create_task(self.task_manager.start_tasks(websocket))
                 await asyncio.sleep(0.1)
+                reg = await self.task_manager.add_task(self.registration, str(uuid.uuid4()), name, username, password)
+                print(reg)
                 #
                 #здесь все запуски задач
                 #
