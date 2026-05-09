@@ -9,11 +9,11 @@ import json
 from sqlalchemy.testing import future
 from sqlalchemy.util import await_only
 
-url = "wss://tether-jj4v.onrender.com/ws"
+url = "wss://tether-jj4v.onrender.com/ws" #ссылка на сервер
 
-name = ""
-username = ""
-password = ""
+name = "seva"
+username = "seva23"
+password = "1234"
 class TaskManager():
     def __init__(self):
         """
@@ -28,12 +28,13 @@ class TaskManager():
         self.running = True
         self.id_response = {}
 
-    async def add_task(self, function, id_task: str, *args, timeout=None) -> asyncio.Future:
+    async def add_task(self, function, id_task: str, websocket, *args, timeout=None) -> asyncio.Future:
         # print("add_task")
         """
         Создание задачи и ожидания ответа на неё
         :param function: функция, которая делается задачей
         :param id_task: id задачи
+        :param websocket: объект-соединение с пользователем
         :param args: входные данные функции
         :param timeout: время ожидания в секундах
         :return: сначало asyncio.Future() - заглушка для реального ответа,
@@ -41,13 +42,16 @@ class TaskManager():
         """
         future = asyncio.Future()
         self.id_response[id_task] = future
+        print(f"Результат задачи{id_task} = {self.id_response[id_task]}")
 
         self.task_info = {"function": function,
                           "id_task": id_task,
+                          "websocket" : websocket,
                           "params": args,
                           "timeout" : timeout}
         self.current_task = True
         await self.queue_tasks.put(self.task_info)
+        print(future)
         return await future
 
 
@@ -70,21 +74,27 @@ class TaskManager():
             # print("1")
             # print(self.queue_tasks)
             task_info = await self.queue_tasks.get()
-            # print("2")
+            print("2")
             function = task_info["function"]
             id_task = task_info["id_task"]
+            websocket = task_info["websocket"]
+
             params = task_info["params"]
+            #print(params)
             timeout = task_info.get("timeout")
             if timeout:
+                #print("timeout")
                 task = asyncio.create_task(
-                    self.run_with_timeout(function(id_task, *params), id_task, timeout)
+                    self.run_with_timeout(function(id_task, websocket, *params), id_task, timeout)
                 )
             else:
-                task = asyncio.create_task(function(id_task, *params))
-            # print("3")
+                #print("timeout -")
+                task = asyncio.create_task(function(id_task, websocket, *params))
+                #print(task)
+            print("3")
             self.tasks_in_progress.add(task)
             task.add_done_callback(lambda x: self.remove_task(x))
-            # print("Здача запущена")
+            print("Здача запущена")
     async def run_with_timeout(self, function, id_task: str, timeout: int):
         """
         Ожидает выполнения функции по заданному времени
@@ -112,15 +122,17 @@ class TaskManager():
             print(t_response)
 
             if t_response["id_task"] in self.id_response:
+
                 future = self.id_response[t_response["id_task"]]
+                #print(self.id_response[t_response["id_task"]])
+                #print(future.done())
+
                 if not future.done():
                     future.set_result(t_response["response"])
+                    print(self.id_response[t_response["id_task"]])
 
                 del self.id_response[t_response["id_task"]]
-
-
-
-            #self.id_response[t_response["id_task"]] = t_response["response"]
+          #self.id_response[t_response["id_task"]] = t_response["response"]
 
     async def stop(self):
         """
@@ -165,7 +177,8 @@ class Client:
             try:
                 manager_task = asyncio.create_task(self.task_manager.start_tasks(websocket))
                 await asyncio.sleep(0.1)
-                reg = await self.task_manager.add_task(self.registration, str(uuid.uuid4()), name, username, password)
+                print("Start")
+                reg = await self.task_manager.add_task(self.registration, str(uuid.uuid4()), websocket, name, username, password)
                 print(reg)
                 #
                 #здесь все запуски задач
