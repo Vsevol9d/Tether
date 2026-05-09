@@ -2,7 +2,7 @@ import json
 import websockets
 import asyncio
 from Database.api import Session, DataBase
-
+import os
 
 class Server():
     def __init__(self):
