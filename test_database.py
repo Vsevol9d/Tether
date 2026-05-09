@@ -41,6 +41,8 @@ def health_check_users(db):
     #                    password='Sev'))
     # print(db.users.add(name='Юра', username='Yura', lastname='Мельник', birthday='14-07-2011', phone=None, email=None,
     #                    password='Yur'))
+    print(db.users.add(name='123', username='123', lastname='123-123', birthday=None, phone=None, email=None,
+                       password='123'))
 
     # print(db.users.update(1, 'password', 'Nik'))
     # print(db.users.update(9, 'id', 2))
@@ -51,7 +53,7 @@ def health_check_users(db):
     # isRealId = db.users.exists(id=17)
     # if isRealId:
     #     print(db.users.delete(17))
-    # views()
+    views()
 
 def health_check_chats(db):
 
@@ -322,93 +324,91 @@ def set_backup(db, all_data: dict):
 # Создание сессии
 with Session() as session:
     db = DataBase(session)
-    # try:
-    with session.begin():  # ← одна транзакция на всё
-            # РАБОЧАЯ ЧАСТЬ
-            health_check_users(db)  # Посмотреть всех пользователей
-            health_check_chats(db)  # Посмотреть чаты
-            health_check_participants(db)  # Участники групп
-            health_check_messages(db)  # Сообщения
-            health_check_friends(db)
-            # test_real_simulated(db)  # Симуляция регистрации или авторизации
+    # РАБОЧАЯ ЧАСТЬ
+    print(db.users.exists(username='Nikita'))
+    exit()
+    # print(db.select_user_by_username('Nikita'))
+    health_check_users(db)  # Посмотреть всех пользователей
+    health_check_chats(db)  # Посмотреть чаты
+    health_check_participants(db)  # Участники групп
+    health_check_messages(db)  # Сообщения
+    health_check_friends(db)
+    # test_real_simulated(db)  # Симуляция регистрации или авторизации
 
-            # бэкап всех тестовых данных для быстрого восстановления
-            backup = {
-                'users': [
-                    {'avatar_url': None, 'birthday': '12-01-2011', 'date_created': '01-05-2026',
-                     'email': 'mail@yandex.ru', 'id': 1, 'lastname': 'Соколов', 'name': 'Никита', 'password': 'Nik',
-                     'phone': '89012345678', 'username': 'Nikita'},
-                    {'avatar_url': None, 'birthday': None, 'date_created': '01-05-2026', 'email': None, 'id': 2,
-                     'lastname': None, 'name': 'Сева', 'password': 'Sev', 'phone': '89876543210', 'username': 'Seva'},
-                    {'avatar_url': None, 'birthday': '14-07-2011', 'date_created': '01-05-2026', 'email': None, 'id': 3,
-                     'lastname': 'Мельник', 'name': 'Юра', 'password': 'Yur', 'phone': None, 'username': 'Yura'},
-                    {'avatar_url': None, 'birthday': None, 'date_created': '01-05-2026', 'email': None, 'id': 4,
-                     'lastname': None, 'name': '123', 'password': '1111', 'phone': None, 'username': '123'},
-                    {'avatar_url': None, 'birthday': None, 'date_created': '02-05-2026', 'email': None, 'id': 5,
-                     'lastname': None, 'name': '1234444', 'password': '1111', 'phone': None, 'username': '12344444444'},
-                    {'avatar_url': None, 'birthday': None, 'date_created': '02-05-2026', 'email': None, 'id': 8,
-                     'lastname': None, 'name': '1234444', 'password': '1111', 'phone': None, 'username': '1234444444s4'}
-                ],
-                'chats': [
-                    {'avatar_url': None, 'date_created': '01-05-2026', 'id': 1, 'name': 'Разработка немыслимого',
-                     'type': 'private'},
-                    {'avatar_url': None, 'date_created': '01-05-2026', 'id': 2, 'name': 'ЮН', 'type': 'private'},
-                    {'avatar_url': None, 'date_created': '01-05-2026', 'id': 3, 'name': 'НС', 'type': 'private'},
-                    {'avatar_url': None, 'date_created': '01-05-2026', 'id': 4, 'name': 'СЮ', 'type': 'private'},
-                    {'avatar_url': None, 'date_created': '01-05-2026', 'id': 5, 'name': 'СЮ', 'type': 'private'},
-                    {'avatar_url': None, 'date_created': '02-05-2026', 'id': 11, 'name': 'СЮh', 'type': 'private'},
-                    {'avatar_url': None, 'date_created': '02-05-2026', 'id': 6, 'name': 'СЮh', 'type': 'private'}
-                ],
-                'participants': [
-                    {'chat_id': 1, 'role': 'Участник', 'user_id': 1},
-                    {'chat_id': 1, 'role': 'Участник', 'user_id': 2},
-                    {'chat_id': 1, 'role': 'Участник', 'user_id': 3},
-                    {'chat_id': 2, 'role': 'Участник', 'user_id': 1},
-                    {'chat_id': 2, 'role': 'Участник', 'user_id': 3},
-                    {'chat_id': 3, 'role': 'Участник', 'user_id': 1},
-                    {'chat_id': 3, 'role': 'Участник', 'user_id': 2},
-                    {'chat_id': 4, 'role': 'Участник', 'user_id': 1},
-                    {'chat_id': 4, 'role': 'Участник', 'user_id': 2},
-                    {'chat_id': 4, 'role': 'Участник', 'user_id': 3},
-                    {'chat_id': 4, 'role': 'Участник', 'user_id': 5}
-                ],
-                'messages': [
-                    {'chat_id': 1, 'file_id': None, 'id': 1, 'text': 'Привет всем от Никиты!', 'type': 'text',
-                     'user_id': 1},
-                    {'chat_id': 1, 'file_id': None, 'id': 2, 'text': 'Привет всем от Севы!', 'type': 'text',
-                     'user_id': 2},
-                    {'chat_id': 1, 'file_id': None, 'id': 3, 'text': 'Привет всем от Юры!', 'type': 'text',
-                     'user_id': 3},
-                    {'chat_id': 2, 'file_id': None, 'id': 1, 'text': 'Никит, как дела? (от Юры)', 'type': 'text',
-                     'user_id': 3},
-                    {'chat_id': 4, 'file_id': None, 'id': 1, 'text': 'Юр, как дела? (от Севы)', 'type': 'text',
-                     'user_id': 2},
-                    {'chat_id': 1, 'file_id': None, 'id': 4, 'text': 'Как удалить это сообщение?', 'type': 'text',
-                     'user_id': 2},
-                    {'chat_id': 1, 'file_id': None, 'id': 5, 'text': 'Как вам моя БД?', 'type': 'text', 'user_id': 1},
-                    {'chat_id': 1, 'file_id': None, 'id': 6, 'text': 'Спам', 'type': 'text', 'user_id': 1},
-                    {'chat_id': 1, 'file_id': None, 'id': 7, 'text': 'Спам', 'type': 'text', 'user_id': 1},
-                    {'chat_id': 1, 'file_id': None, 'id': 8, 'text': 'Спам 1', 'type': 'text', 'user_id': 2},
-                    {'chat_id': 1, 'file_id': None, 'id': 9, 'text': 'Спам', 'type': 'text', 'user_id': 2},
-                    {'chat_id': 1, 'file_id': None, 'id': 10, 'text': 'Спам 2', 'type': 'text', 'user_id': 2},
-                    {'chat_id': 1, 'file_id': None, 'id': 11, 'text': 'Спам', 'type': 'text', 'user_id': 3},
-                    {'chat_id': 1, 'file_id': None, 'id': 12, 'text': 'Спам 3', 'type': 'text', 'user_id': 3},
-                    {'chat_id': 1, 'file_id': None, 'id': 13, 'text': 'Спам', 'type': 'text', 'user_id': 3},
-                    {'chat_id': 1, 'file_id': None, 'id': 14, 'text': 'Спам 4', 'type': 'text', 'user_id': 1},
-                    {'chat_id': 2, 'file_id': None, 'id': 2, 'text': 'Дельно', 'type': 'text', 'user_id': 1},
-                    {'chat_id': 1, 'file_id': None, 'id': 15, 'text': 'Спам 5.2', 'type': 'text', 'user_id': 1}
-                ],
-                'friends': [
-                    {'level_relationships': 2, 'user_id_1': 1, 'user_id_2': 3},
-                    {'level_relationships': 1, 'user_id_1': 1, 'user_id_2': 4},
-                    {'level_relationships': 3, 'user_id_1': 2, 'user_id_2': 3},
-                    {'level_relationships': 4, 'user_id_1': 1, 'user_id_2': 2}
-                ]
-            }
-            # backup = get_all_data(db) # создание бэкапа
-            # set_backup(db, backup)  # восстановление бэкапа
-
-    # except Exception as e:
-    #     print(f"Ошибка: {e}")
+    # бэкап всех тестовых данных для быстрого восстановления
+    backup = {
+            'users': [
+                {'avatar_url': None, 'birthday': '12-01-2011', 'date_created': '01-05-2026',
+                 'email': 'mail@yandex.ru', 'id': 1, 'lastname': 'Соколов', 'name': 'Никита', 'password': 'Nik',
+                 'phone': '89012345678', 'username': 'Nikita'},
+                {'avatar_url': None, 'birthday': None, 'date_created': '01-05-2026', 'email': None, 'id': 2,
+                 'lastname': None, 'name': 'Сева', 'password': 'Sev', 'phone': '89876543210', 'username': 'Seva'},
+                {'avatar_url': None, 'birthday': '14-07-2011', 'date_created': '01-05-2026', 'email': None, 'id': 3,
+                 'lastname': 'Мельник', 'name': 'Юра', 'password': 'Yur', 'phone': None, 'username': 'Yura'},
+                {'avatar_url': None, 'birthday': None, 'date_created': '01-05-2026', 'email': None, 'id': 4,
+                 'lastname': None, 'name': '123', 'password': '1111', 'phone': None, 'username': '123'},
+                {'avatar_url': None, 'birthday': None, 'date_created': '02-05-2026', 'email': None, 'id': 5,
+                 'lastname': None, 'name': '1234444', 'password': '1111', 'phone': None, 'username': '12344444444'},
+                {'avatar_url': None, 'birthday': None, 'date_created': '02-05-2026', 'email': None, 'id': 8,
+                 'lastname': None, 'name': '1234444', 'password': '1111', 'phone': None, 'username': '1234444444s4'}
+            ],
+            'chats': [
+                {'avatar_url': None, 'date_created': '01-05-2026', 'id': 1, 'name': 'Разработка немыслимого',
+                 'type': 'private'},
+                {'avatar_url': None, 'date_created': '01-05-2026', 'id': 2, 'name': 'ЮН', 'type': 'private'},
+                {'avatar_url': None, 'date_created': '01-05-2026', 'id': 3, 'name': 'НС', 'type': 'private'},
+                {'avatar_url': None, 'date_created': '01-05-2026', 'id': 4, 'name': 'СЮ', 'type': 'private'},
+                {'avatar_url': None, 'date_created': '01-05-2026', 'id': 5, 'name': 'СЮ', 'type': 'private'},
+                {'avatar_url': None, 'date_created': '02-05-2026', 'id': 11, 'name': 'СЮh', 'type': 'private'},
+                {'avatar_url': None, 'date_created': '02-05-2026', 'id': 6, 'name': 'СЮh', 'type': 'private'}
+            ],
+            'participants': [
+                {'chat_id': 1, 'role': 'Участник', 'user_id': 1},
+                {'chat_id': 1, 'role': 'Участник', 'user_id': 2},
+                {'chat_id': 1, 'role': 'Участник', 'user_id': 3},
+                {'chat_id': 2, 'role': 'Участник', 'user_id': 1},
+                {'chat_id': 2, 'role': 'Участник', 'user_id': 3},
+                {'chat_id': 3, 'role': 'Участник', 'user_id': 1},
+                {'chat_id': 3, 'role': 'Участник', 'user_id': 2},
+                {'chat_id': 4, 'role': 'Участник', 'user_id': 1},
+                {'chat_id': 4, 'role': 'Участник', 'user_id': 2},
+                {'chat_id': 4, 'role': 'Участник', 'user_id': 3},
+                {'chat_id': 4, 'role': 'Участник', 'user_id': 5}
+            ],
+            'messages': [
+                {'chat_id': 1, 'file_id': None, 'id': 1, 'text': 'Привет всем от Никиты!', 'type': 'text',
+                 'user_id': 1},
+                {'chat_id': 1, 'file_id': None, 'id': 2, 'text': 'Привет всем от Севы!', 'type': 'text',
+                 'user_id': 2},
+                {'chat_id': 1, 'file_id': None, 'id': 3, 'text': 'Привет всем от Юры!', 'type': 'text',
+                 'user_id': 3},
+                {'chat_id': 2, 'file_id': None, 'id': 1, 'text': 'Никит, как дела? (от Юры)', 'type': 'text',
+                 'user_id': 3},
+                {'chat_id': 4, 'file_id': None, 'id': 1, 'text': 'Юр, как дела? (от Севы)', 'type': 'text',
+                 'user_id': 2},
+                {'chat_id': 1, 'file_id': None, 'id': 4, 'text': 'Как удалить это сообщение?', 'type': 'text',
+                 'user_id': 2},
+                {'chat_id': 1, 'file_id': None, 'id': 5, 'text': 'Как вам моя БД?', 'type': 'text', 'user_id': 1},
+                {'chat_id': 1, 'file_id': None, 'id': 6, 'text': 'Спам', 'type': 'text', 'user_id': 1},
+                {'chat_id': 1, 'file_id': None, 'id': 7, 'text': 'Спам', 'type': 'text', 'user_id': 1},
+                {'chat_id': 1, 'file_id': None, 'id': 8, 'text': 'Спам 1', 'type': 'text', 'user_id': 2},
+                {'chat_id': 1, 'file_id': None, 'id': 9, 'text': 'Спам', 'type': 'text', 'user_id': 2},
+                {'chat_id': 1, 'file_id': None, 'id': 10, 'text': 'Спам 2', 'type': 'text', 'user_id': 2},
+                {'chat_id': 1, 'file_id': None, 'id': 11, 'text': 'Спам', 'type': 'text', 'user_id': 3},
+                {'chat_id': 1, 'file_id': None, 'id': 12, 'text': 'Спам 3', 'type': 'text', 'user_id': 3},
+                {'chat_id': 1, 'file_id': None, 'id': 13, 'text': 'Спам', 'type': 'text', 'user_id': 3},
+                {'chat_id': 1, 'file_id': None, 'id': 14, 'text': 'Спам 4', 'type': 'text', 'user_id': 1},
+                {'chat_id': 2, 'file_id': None, 'id': 2, 'text': 'Дельно', 'type': 'text', 'user_id': 1},
+                {'chat_id': 1, 'file_id': None, 'id': 15, 'text': 'Спам 5.2', 'type': 'text', 'user_id': 1}
+            ],
+            'friends': [
+                {'level_relationships': 2, 'user_id_1': 1, 'user_id_2': 3},
+                {'level_relationships': 1, 'user_id_1': 1, 'user_id_2': 4},
+                {'level_relationships': 3, 'user_id_1': 2, 'user_id_2': 3},
+                {'level_relationships': 4, 'user_id_1': 1, 'user_id_2': 2}
+            ]
+        }
+    # backup = get_all_data(db) # создание бэкапа
+    # set_backup(db, backup)  # восстановление бэкапа
 
 
