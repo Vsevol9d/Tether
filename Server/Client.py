@@ -11,7 +11,9 @@ from sqlalchemy.util import await_only
 
 url = "ws://localhost:8765"
 
-
+name = "seva"
+username = "seva23"
+password = "1234"
 class TaskManager():
     def __init__(self):
         """
@@ -116,6 +118,8 @@ class TaskManager():
 
                 del self.id_response[t_response["id_task"]]
 
+
+
             #self.id_response[t_response["id_task"]] = t_response["response"]
 
     async def stop(self):
@@ -161,6 +165,12 @@ class Client:
             try:
                 manager_task = asyncio.create_task(self.task_manager.start_tasks(websocket))
                 await asyncio.sleep(0.1)
+                print("Start")
+                reg_fut = self.task_manager.add_task(self.registration, str(uuid.uuid4()), name, username, password)
+                #reg = await self.task_manager.add_task(self.registration, str(uuid.uuid4()), name, username, password)
+                print(reg_fut)
+                reg = await reg_fut
+                print(reg)
                 #
                 #здесь все запуски задач
                 #
