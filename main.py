@@ -1,101 +1,81 @@
-# main.py
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-from Database.api import Session, DataBase
-from typing import Dict
+import asyncio
+import websockets
 import json
+from Database.api import Session, DataBase  # Твои импорты БД
 
-app = FastAPI()
 
-
-# 🔹 Хранилище активных подключений: user_id → WebSocket
-class ConnectionManager:
+class Server():
     def __init__(self):
-        self.active_connections: Dict[str, WebSocket] = {}
+        self.connected_clients = {}
 
-    async def connect(self, user_id: str, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections[user_id] = websocket
-        print(f"✅ Пользователь {user_id} подключился")
+        # Инициализируем БД здесь или передаем извне
+        # Важно: убедись, что Session настроена правильно
+        self.db = DataBase(Session())
 
-    def disconnect(self, user_id: str):
-        if user_id in self.active_connections:
-            del self.active_connections[user_id]
-            print(f"❌ Пользователь {user_id} отключился")
+        self.action_handlers = {
+            "registration": self.registration,
+            "auth": self.auth,
+            "create_message": self.send_message,
+            "get_chats": self.get_chats,
+            "open_chat": self.open_chat,
+            "get_notifications": self.get_notifications
+        }
+        self.notice = {}
 
-    async def send_personal_message(self, message: dict, user_id: str):
-        if user_id in self.active_connections:
-            await self.active_connections[user_id].send_json(message)
+    async def handler(self, websocket):
+        """Обрабатывает одного клиента"""
+        try:
+            print("Клиент подключился")
+            # websockets в новых версиях возвращает сообщения по одному
+            async for message in websocket:
+                t_message = json.loads(message)
+                print(f"Получено: {t_message}")
 
-    async def broadcast(self, message: dict):
-        for conn in self.active_connections.values():
-            await conn.send_json(message)
+                action = t_message.get("action")
+                if action in self.action_handlers:
+                    # Вызываем нужный метод.
+                    # Внимание: убедись, что методы принимают (id_task, websocket, *params)
+                    await self.action_handlers[action](
+                        t_message.get("id_task"),
+                        websocket,
+                        *t_message.get("params", [])
+                    )
+                else:
+                    await websocket.send(json.dumps({"error": f"Unknown action: {action}"}))
+        except websockets.exceptions.ConnectionClosed:
+            print("Клиент отключился")
+        except Exception as e:
+            print(f"Ошибка: {e}")
+        finally:
+            # Удаляем клиента из списка при отключении
+            if websocket in self.connected_clients:
+                del self.connected_clients[websocket]
 
-
-manager = ConnectionManager()
-
-
-# 🔹 HTTP-эндпоинты (для простых запросов)
-class CommandRequest(BaseModel):
-    command: str
-    username: str
-
-
-@app.get("/")
-def read_root():
-    return {"status": "Tether API is running 🚀"}
-
-
-@app.post("/api/check-user")
-def check_user(request: CommandRequest):
-    try:
-        with Session() as session:
-            db = DataBase(session)
-            if request.command == "exists":
-                result = db.users.exists(username=request.username)
-                return result
+    # --- Твои методы (registration, auth и т.д.) ---
+    async def registration(self, id_task, websocket, name, username, password):
+        try:
+            # Используем self.db, который мы создали в __init__
+            exists = self.db.users.exists(username=username)
+            if not exists:
+                out = self.db.users.add(name=name, username=username, password=password)
+                await websocket.send(json.dumps({"id_task": id_task, "response": out}))
             else:
-                raise ValueError(f"Неизвестная команда: {request.command}")
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"detail": str(e)})
+                await websocket.send(json.dumps({"id_task": id_task, "response": "User exists"}))
+        except Exception as e:
+            print(f"Registration Error: {e}")
+            await websocket.send(json.dumps({"id_task": id_task, "response": f"Error: {e}"}))
 
 
-# 🔹 WebSocket-эндпоинт для чата
-@app.websocket("/ws/{user_id}")
-async def websocket_endpoint(websocket: WebSocket, user_id: str):
-    await manager.connect(user_id, websocket)
-    try:
-        while True:
-            # Ждём сообщение от клиента
-            data = await websocket.receive_text()
-            message = json.loads(data)
+#  ГЛАВНОЕ: Точка входа для хостинга
+async def main():
+    server = Server()
 
-            # Обработка команд
-            if message.get("type") == "chat_message":
-                # Сохраняем в БД
-                with Session() as session:
-                    db = DataBase(session)
-                    # ... логика сохранения сообщения ...
+    # Запускаем сервер на порту 10000 (требование Render)
+    # 0.0.0.0 означает "слушать все сетевые интерфейсы"
+    async with websockets.serve(server.handler, "0.0.0.0", 10000):
+        print("✅ WebSocket сервер запущен на порту 10000")
+        await asyncio.Future()  # Бесконечно ждем событий (loop forever)
 
-                # Отправляем получателю (если он онлайн)
-                recipient = message.get("to")
-                if recipient:
-                    await manager.send_personal_message({
-                        "type": "new_message",
-                        "from": user_id,
-                        "text": message.get("text"),
-                        "timestamp": message.get("timestamp")
-                    }, recipient)
 
-                # Подтверждение отправителю
-                await websocket.send_json({
-                    "type": "message_sent",
-                    "status": "delivered"
-                })
-
-    except WebSocketDisconnect:
-        manager.disconnect(user_id)
-    except Exception as e:
-        print(f"❌ Ошибка в WebSocket: {e}")
-        manager.disconnect(user_id)
+if __name__ == "__main__":
+    asyncio.run(main())
