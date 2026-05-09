@@ -4,7 +4,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 
-DEFAULT_AVATAR_PATH = BASE_DIR / "assets" / "default_avatar.jpg"
+DEFAULT_AVATAR_PATH = str(BASE_DIR / "assets" / "default_avatar.jpg")
 
 sys.path.append(os.path.abspath("../Database"))
 
@@ -31,7 +31,7 @@ class App:
     def __init__(self):
         self.root = ctk.CTk()
         self.root.geometry("800x600")
-        self.root.title("Communicator")
+        self.root.title("Tether")
 
         self.user = None
         self.available_chats = {}
@@ -58,15 +58,15 @@ class App:
             if chats['isSuccess']:
                 for chat in chats['data']:
                     chat_id = chat['id']
+                    chat_type = chat['type']
                     chat_name = chat['name']
-                    last_message = ''
+                    last_message = 'Начните общение'
                     participants_list = []
                     participants_names_list = []
 
                     participants_response = db.select_all_users_by_chat_id(chat_id=chat_id)
                     if participants_response['isSuccess']:
                         for user in participants_response['data']:
-                            print(user)
                             participants_list.append(user)
                             name = user['name']
                             participants_names_list.append(name)
@@ -82,17 +82,21 @@ class App:
                         messages_list = messages['data']
                         if len(messages_list) > 0:
                             last_message = messages_list[-1]['text']
+                            is_new = False
+                        else:
+                            last_message = 'Начните общение'
+                            is_new = True
 
                         # Создаём словарь с доступными чатами и необходимой информацией
-                        self.available_chats[chat_id] = {'name': chat_name, 'last_message': last_message,
-                                                         'messages': messages_list, 'participants_count': len(participants_list),
+                        self.available_chats[chat_id] = {'type': chat_type,'name': chat_name, 'last_message': last_message,
+                                                         'participants_count': len(participants_list), 'is_new': is_new,
                                                          'participants': participants_list, 'participants_names': participants_names_list}
 
                     else:
                         error = ErrorHandler(self.root, messages['error'])
             for chat_id in self.available_chats:
                 chat = self.available_chats[chat_id]
-                self.add_selectable_chat_view(chat_id, DEFAULT_AVATAR_PATH, chat['name'], chat['last_message'])
+                self.add_selectable_chat_view(chat_id, DEFAULT_AVATAR_PATH, chat['name'], chat['last_message'], is_new=False)
         self.current_page.hide()
         self.chatting_page.show()
         self.current_page = self.chatting_page
@@ -119,8 +123,8 @@ class App:
     def on_chat_adding_submit(self) -> None:
         chat_type = self.adding_page.chat_type_choose_menu.get()
         chat_name = self.adding_page.chat_name_entry.get()
-        participants_list = self.adding_page.selected_users_data
-        participants_names_list = self.adding_page.selected_users_names
+        participants_list = self.adding_page.selected_users_data + [self.user]
+        participants_names_list = self.adding_page.selected_users_names + [self.user['name']]
         participants_count = len(participants_list)
         avatar_url = self.adding_page.avatar_url_entry.get()
         if avatar_url == '':
@@ -130,10 +134,10 @@ class App:
             chat_response = db.chats.add(type=chat_type, name=chat_name, avatar_url=avatar_url)
             if chat_response['isSuccess']:
                 chat_id = chat_response['data']['id']
-                self.available_chats[chat_id] = {'name': chat_name, 'last_message': 'Начните общение!',
-                                                 'messages': [], 'participants_count': participants_count,
+                self.available_chats[chat_id] = {'type': chat_type,'name': chat_name, 'last_message': 'Начните общение!',
+                                                 'participants_count': participants_count,
                                                  'participants': participants_list, 'participants_names': participants_names_list}
-                self.add_selectable_chat_view(chat_id, avatar_url, chat_name, 'Начните общение')
+                self.add_selectable_chat_view(chat_id, avatar_url, chat_name, 'Начните общение', is_new=True)
                 self.switch_to_chatting_page()
         else:
                 self.adding_page.error_callback('Проверьте заполненность полей!')
@@ -145,65 +149,87 @@ class App:
         if text != '':
             message_type = 'text'
             chat_id = self.current_chat_info['id']
+            is_new = self.current_chat_info['is_new']
             user_id = self.user['id']
 
             send_response = db.messages.add(type=message_type, text=text, chat_id=chat_id, user_id=user_id)
             if send_response['isSuccess']:
+                if is_new:
+                    self.current_chat_view.on_first_message_sending()
                 self.add_message_view('text', text, 'Вы')
                 self.current_chat_view.message_entry.delete(0, "end")
             else:
-                error = ErrorHandler(self.root, 'Что-то пошло не так, проверьте Интернет-соединение.')
+                error = ErrorHandler(self.root, send_response['error'])
 
     # Метод для открытия чата
-    def open_chat(self, chat_id) -> None:
+    def open_chat(self, chat_id, is_new: bool) -> None:
         """
         Получаем информацию о чате из БД и передаём её
 
         :param chat_id: ID открываемого чата
+        :param is_new: Новый ли чат или нет
         """
 
         if self.current_chat_info is None or chat_id != self.current_chat_info['id']:
-            chat_type = 'group'  # В будущем изменить
+            chat_type = self.available_chats[chat_id]['type']
             chat_name = self.available_chats[chat_id]['name']
-            chat_messages = self.available_chats[chat_id]['messages']
-            chat_participants_count = self.available_chats[chat_id]['participants_count']
             chat_participants_names = self.available_chats[chat_id]['participants_names']
+            if chat_type != 'private':
+                chat_participants_count = self.available_chats[chat_id]['participants_count']
+            else:
+                chat_participants_count = 2
 
-            self.current_chat_info = {'id': chat_id,'type': chat_type, 'name': chat_name, 'participants_names': chat_participants_names, 'participants_count': chat_participants_count}
+            self.current_chat_info = {'id': chat_id,'type': chat_type, 'name': chat_name, 'participants_names': chat_participants_names, 'participants_count': chat_participants_count, 'is_new': is_new}
 
-            self.add_chat_view('group', chat_name, chat_participants_count)
+            self.add_chat_view(chat_type=chat_type, name=chat_name, participants_count=chat_participants_count, is_new=is_new)
 
-            for message in chat_messages:
-                if message['file_id'] is not None:
-                    content_type = 'image'
-                    content = 'Пока без картинок'
+            if not is_new:
+                chat_messages = db.select_all_messages_by_chat_id(chat_id=chat_id)
+                if chat_messages['isSuccess']:
+                    for message in chat_messages['data']:
+                        sender_id = message['user_id']
+                        file = message['file_id']
+                        content_type = message['type']
+                        text = message['text']
+
+                        if content_type == 'text':
+                            content = text
+                        else:
+                            content = file
+
+                        sender_response = db.select_by_id(id=sender_id)
+                        if sender_response['isSuccess']:
+                            sender_name = sender_response['data']['name']
+                            if sender_id == self.user['id']:
+                                sender_name = 'Вы'
+                        else:
+                            sender_name = ''
+                            error = ErrorHandler(self.root, sender_response['error'])
+                        self.add_message_view(content_type, content, sender_name)
                 else:
-                    content_type = 'text'
-                    content = message['text']
-                sender_response = db.select_by_id(id=message['user_id'])
-                if sender_response['isSuccess']:
-                    sender_name = sender_response['data']['name']
-                    if sender_name == self.user['name']:
-                        sender_name = 'Вы'
-                else:
-                    sender_name = ''
-                    error = ErrorHandler(self.root, sender_response['error'])
-                self.add_message_view(content_type, content, sender_name)
+                    error = ErrorHandler(self.root, chat_messages['error'])
 
 #################################################################################################
     # Методы добавление UI
 #################################################################################################
 
     # Добавление вида выбранного чата (тип чата, имя чата, количество участников)
-    def add_chat_view(self, chat_type: str, name: str, participants_count: int):
+    def add_chat_view(self, chat_type: str, name: str, participants_count: int, is_new: bool) -> None:
+        if self.current_chat_view is None:
+            self.chatting_page.on_chat_selection()
+
         self.current_chat_view = ChatView(self.chatting_page, chat_type, name, participants_count, DEFAULT_AVATAR_PATH, self.send_message, self.see_chat_info)
-        self.chatting_page.on_chat_selection()
+        print(is_new)
+
+        if is_new:
+            self.current_chat_view.on_new_chat_selection()
+
         self.current_chat_view.grid(column=1, row=0, sticky="nsew")
 
     # Добавление вида чата на панели списка чатов
-    def add_selectable_chat_view(self, chat_id: int, avatar_url: str, name: str, last_message: str) -> None:
+    def add_selectable_chat_view(self, chat_id: int, avatar_url: str, name: str, last_message: str, is_new = False) -> None:
         selectable_chat = SelectableChatView(self.chatting_page.chats_list_scrollable_frame, avatar_url, name, last_message)
-        selectable_chat.bind("<Button-1>", command=lambda event: self.open_chat(chat_id))
+        selectable_chat.bind("<Button-1>", command=lambda event: self.open_chat(chat_id, is_new))
         selectable_chat.pack(side='top', anchor='ne', pady=5, padx=5, fill="x")
 
     # Добавление вида сообщения

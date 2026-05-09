@@ -104,6 +104,8 @@ class SignUpPage(ctk.CTkFrame):
         # Начальное размещение элементов
         self.setup_initial_view()
 
+        self.show_login_interface()
+
     def setup_initial_view(self):
         self.process_label.grid(row=1, column=1, columnspan=2, pady=(40, 20))
 

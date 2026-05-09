@@ -13,11 +13,6 @@ class ChatView(ctk.CTkFrame):
         self.send_message = send_message
         self.see_chat_info = see_chat_info
 
-        if participants_count % 10 < 5 and participants_count // 10 != 1:
-            self.ending = 'а'
-        else:
-            self.ending = 'ов'
-
         self.grid_propagate(False)
 
 #---------------------------# Верхняя панель #--------------------------
@@ -37,11 +32,17 @@ class ChatView(ctk.CTkFrame):
             font=("Arial", 14, 'bold')
         )
 
-        self.participants_count_label = ctk.CTkLabel(
-            self.chat_tool_panel_frame,
-            text=str(self.participants_count) + ' участник' + self.ending,
-            font=("Arial", 12)
-        )
+        if participants_count != 2:
+            if participants_count % 10 < 5 and participants_count // 10 != 1:
+                self.ending = 'а'
+            else:
+                self.ending = 'ов'
+
+            self.participants_count_label = ctk.CTkLabel(
+                self.chat_tool_panel_frame,
+                text=str(self.participants_count) + ' участник' + self.ending,
+                font=("Arial", 12)
+            )
 
         self.chat_tool_panel_frame.bind('<Button-1>', self.see_chat_info)
 
@@ -70,6 +71,16 @@ class ChatView(ctk.CTkFrame):
         )
         self.send_button.grid_propagate(False)
 
+######### --- Надпись нового чата (без сообщений) --- #########
+
+        self.begin_chatting_label = ctk.CTkLabel(
+            self.messages_frame,
+            font=("Arial", 12),
+            fg_color="#2E2E2E",
+            corner_radius=5,
+            text='Начните общение!'
+        )
+
         self.setup_initial_view()
 
     def setup_initial_view(self):
@@ -90,6 +101,12 @@ class ChatView(ctk.CTkFrame):
         self.messages_frame.grid(column=0, row=1, sticky='nsew', columnspan=2)
         self.message_entry.grid(column=0, row=2, sticky='nsew', padx=5, pady=5)
         self.send_button.grid(column=1, row=2, sticky='nsew', padx=5, pady=5)
+
+    def on_new_chat_selection(self):
+        self.begin_chatting_label.place(relx=0.5, rely=0.5, anchor="center")
+
+    def on_first_message_sending(self):
+        self.begin_chatting_label.destroy()
 
 ##############################################################################################
 # Вид сообщения

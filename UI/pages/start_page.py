@@ -12,7 +12,7 @@ class StartPage(ctk.CTkFrame):
         # Теперь master для label — это self (сам фрейм страницы)
         self.welcome_label = ctk.CTkLabel(
             self,
-            text="Welcome to Communicator!",
+            text="Welcome to Tether!",
             font=("Arial", 32, "bold")
         )
 
