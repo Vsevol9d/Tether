@@ -44,7 +44,8 @@ class Server():
                 await self.action_handlers[t_message["action"]](t_message["id_task"], websocket,  *t_message["params"])
         finally:
             for c in self.connected_clients:
-                c.close()
+                if self.connected_clients[c] == websocket:
+                    self.connected_clients[c].close()
 
     async def registration(self, id_task: str, websocket, name: str, username: str, password: str)->None:
         """
