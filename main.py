@@ -55,8 +55,10 @@ class Server():
         :param username: username пользователя(уникальное имя)
         :param password: пароль
         """
+        print("Регистрируемся")
         try:
-            out = self.db.users.exists("username", username)
+            out = self.db.users.exists(username=username)
+            print(out)
             if not out:
                 out = self.db.users.add(name=name, username=username, password=password)
                 # out = добавление пользователя в БД, получить словарь или ошибку
