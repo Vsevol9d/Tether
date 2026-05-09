@@ -65,6 +65,22 @@ class Server():
             print(f"Registration Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": f"Error: {e}"}))
 
+    # Заглушки для остальных методов, чтобы код не падал при запуске
+    async def auth(self, *args, **kwargs):
+        pass
+
+    async def send_message(self, *args, **kwargs):
+        pass
+
+    async def get_chats(self, *args, **kwargs):
+        pass
+
+    async def open_chat(self, *args, **kwargs):
+        pass
+
+    async def get_notifications(self, *args, **kwargs):
+        pass
+
 
 #  ГЛАВНОЕ: Точка входа для хостинга
 async def main():
