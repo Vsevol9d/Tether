@@ -1,6 +1,6 @@
 # Инициализация классов таблиц и классов с методами
-from Database.methods.configuring_classes import (UsersRequests, ChatsRequests,
-                                                  ParticipantsRequests, MessagesRequests, FriendsRequests)
+from Database.methods.configuring_classes import (UsersQueries, ChatsQueries,
+                                                  ParticipantsQueries, MessagesQueries, FriendsQueries)
 from Database.methods.init import Users, Chats, Participants, Messages, Friends
 from Database.methods.basic_methods import BasicMethods
 from Database.init import catching_errors
@@ -11,11 +11,11 @@ class DataBase(BasicMethods):
     def __init__(self, session):
         super().__init__(session)
 
-        self.users = UsersRequests(session)
-        self.chats = ChatsRequests(session)
-        self.participants = ParticipantsRequests(session)
-        self.messages = MessagesRequests(session)
-        self.friends = FriendsRequests(session)
+        self.users = UsersQueries(session)
+        self.chats = ChatsQueries(session)
+        self.participants = ParticipantsQueries(session)
+        self.messages = MessagesQueries(session)
+        self.friends = FriendsQueries(session)
 
     @catching_errors()
     def select_all_users_by_chat_id(self, chat_id: int) -> dict:
@@ -33,10 +33,11 @@ class DataBase(BasicMethods):
         return {'isSuccess': True, 'data': structured_data}
 
     @catching_errors()
-    def select_by_username(self, username: str) -> dict:
+    def select_user_by_username(self, username: str) -> dict:
         data = self.session.execute(
-            select(Users.id, Users.name).where(Users.username == username)).mappings().one_or_none()
-        return {'isSuccess': True, 'data': dict(data)}
+            select(Users.__table__).where(Users.username == username)
+        ).mappings().one_or_none()
+        return {'isSuccess': True, 'data': data}
 
     @catching_errors()
     def select_by_id(self, id: int) -> dict:
@@ -46,11 +47,6 @@ class DataBase(BasicMethods):
     @catching_errors()
     def select_id_name_by_username(self, username: str) -> dict:
         data = self.session.execute(select(Users.id, Users.name).where(Users.username == username)).mappings().one_or_none()
-        return {'isSuccess': True, 'data': dict(data)}
-
-    @catching_errors()
-    def select_user_name_by_id(self, id: int) -> dict:
-        data = self.session.execute(select(Users.name).where(Users.id == id)).mappings().one_or_none()
         return {'isSuccess': True, 'data': dict(data)}
 
     @catching_errors()
