@@ -1,142 +1,127 @@
-# client_ws.py
+# client_tkinter.py
 import tkinter as tk
 from tkinter import ttk, messagebox
-import threading
+import websocket  # ← Новая библиотека
 import json
-import websocket
+import threading
+import time
 
-SERVER_WS = "wss://tether-jj4v.onrender.com/ws"  # Для Render: wss://tether-jj4v.onrender.com/ws
-# SERVER_HTTP = "http://127.0.0.1:8000"  # Для HTTP-запросов
+# 🔹 Адрес сервера (WebSocket)
+# Для Render: wss:// (безопасный)
+# Для локального: ws://
+SERVER_WS = "wss://tether-jj4v.onrender.com"
 
 
-class TetherClient:
-    def __init__(self, root):
-        self.root = root
-        self.ws = None
-        self.user_id = None
+# SERVER_WS = "ws://127.0.0.1:10000"  # Локальный тест
 
-        self._setup_ui()
+def check_user_on_server(username: str) -> dict:
+    """Отправляет запрос через WebSocket и возвращает ответ"""
 
-    def _setup_ui(self):
-        self.root.title("Tether Messenger")
-        self.root.geometry("500x400")
+    message = {
+        "action": "registration",
+        "id_task": "check_user_" + str(time.time()),
+        "params": [username, username, "temp_password"]  # name, username, password
+    }
 
-        # 🔹 Панель логина
-        self.frame_login = ttk.Frame(self.root, padding=10)
-        self.frame_login.pack(fill="x")
+    result_container = {"response": None, "error": None}
 
-        ttk.Label(self.frame_login, text="Ваш ID:").pack(side="left")
-        self.entry_user_id = ttk.Entry(self.frame_login, width=15)
-        self.entry_user_id.pack(side="left", padx=5)
-        self.entry_user_id.insert(0, "Nikita")
-
-        ttk.Button(self.frame_login, text="Подключиться",
-                   command=self._connect_ws).pack(side="left", padx=10)
-
-        # 🔹 Панель чата
-        self.frame_chat = ttk.Frame(self.root, padding=10)
-        self.frame_chat.pack(fill="both", expand=True)
-
-        self.text_chat = tk.Text(self.frame_chat, height=15, state="disabled")
-        self.text_chat.pack(fill="both", expand=True)
-
-        self.frame_input = ttk.Frame(self.frame_chat)
-        self.frame_input.pack(fill="x", pady=5)
-
-        self.entry_message = ttk.Entry(self.frame_input)
-        self.entry_message.pack(side="left", fill="x", expand=True, padx=5)
-        self.entry_message.bind("<Return>", lambda e: self._send_message())
-
-        ttk.Button(self.frame_input, text="Отправить",
-                   command=self._send_message).pack(side="right")
-
-        # 🔹 Статус
-        self.label_status = ttk.Label(self.root, text="❌ Отключён", foreground="red")
-        self.label_status.pack(pady=5)
-
-    def _connect_ws(self):
-        """Подключается к WebSocket"""
-        self.user_id = self.entry_user_id.get().strip()
-        if not self.user_id:
-            messagebox.showwarning("ID", "Введите ваш ID")
-            return
-
-        # 🔹 Запускаем WebSocket в отдельном потоке
-        ws_url = f"{SERVER_WS}/{self.user_id}"
-        self.ws = websocket.WebSocketApp(
-            ws_url,
-            on_open=self._on_ws_open,
-            on_message=self._on_ws_message,
-            on_error=self._on_ws_error,
-            on_close=self._on_ws_close
-        )
-
-        threading.Thread(target=self.ws.run_forever, daemon=True).start()
-
-    def _on_ws_open(self, ws):
-        """Вызывается при успешном подключении"""
-        self.root.after(0, lambda: self.label_status.config(
-            text="✅ Подключён", foreground="green"))
-        self._log_system("Подключено к серверу")
-
-    def _on_ws_message(self, ws, message):
-        """Обработка входящих сообщений"""
+    def on_message(ws, msg):
         try:
-            data = json.loads(message)
-            msg_type = data.get("type")
-
-            if msg_type == "new_message":
-                # Новое сообщение от другого пользователя
-                self.root.after(0, lambda: self._log_message(
-                    f"{data['from']}: {data['text']}"))
-            elif msg_type == "message_sent":
-                # Подтверждение отправки
-                self.root.after(0, lambda: self._log_system("✓ Сообщение доставлено"))
+            data = json.loads(msg)
+            if data.get("id_task") == message["id_task"]:
+                result_container["response"] = data.get("response")
+                ws.close()
         except Exception as e:
-            print(f"❌ Ошибка парсинга: {e}")
+            result_container["error"] = f"Ошибка парсинга: {e}"
+            ws.close()
 
-    def _on_ws_error(self, ws, error):
-        self.root.after(0, lambda: self._log_system(f"Ошибка: {error}"))
+    def on_error(ws, error):
+        result_container["error"] = f"WebSocket error: {error}"
 
-    def _on_ws_close(self, ws, close_status_code, close_msg):
-        self.root.after(0, lambda: self.label_status.config(
-            text="❌ Отключён", foreground="red"))
+    def on_close(ws, close_status_code, close_msg):
+        pass
 
-    def _send_message(self):
-        """Отправляет сообщение через WebSocket"""
-        text = self.entry_message.get().strip()
-        if not text or not self.ws or not self.user_id:
-            return
+    def on_open(ws):
+        ws.send(json.dumps(message))
 
-        message = {
-            "type": "chat_message",
-            "to": "Friend",  # 🔹 В реальном проекте: выбор получателя
-            "text": text,
-            "timestamp": "2026-05-09T12:00:00"  # 🔹 Используй datetime.now().isoformat()
-        }
+    try:
+        ws = websocket.WebSocketApp(
+            SERVER_WS,
+            on_open=on_open,
+            on_message=on_message,
+            on_error=on_error,
+            on_close=on_close
+        )
+        ws.run_forever(ping_timeout=10)
 
-        self.ws.send(json.dumps(message))
-        self.entry_message.delete(0, "end")
-        self._log_message(f"Вы: {text}")
-
-    def _log_message(self, text: str):
-        """Добавляет сообщение в чат"""
-        self.text_chat.config(state="normal")
-        self.text_chat.insert("end", text + "\n")
-        self.text_chat.see("end")
-        self.text_chat.config(state="disabled")
-
-    def _log_system(self, text: str):
-        """Добавляет системное сообщение"""
-        self.text_chat.config(state="normal")
-        self.text_chat.insert("end", f"⚙️ {text}\n", "system")
-        self.text_chat.see("end")
-        self.text_chat.config(state="disabled")
-        self.text_chat.tag_config("system", foreground="gray")
+        if result_container["error"]:
+            return {"error": result_container["error"]}
+        elif result_container["response"] is not None:
+            response = result_container["response"]
+            if isinstance(response, dict):
+                return response
+            else:
+                return {"isSuccess": True, "data": response}
+        else:
+            return {"error": "Нет ответа от сервера"}
+    except Exception as e:
+        return {"error": f"Ошибка подключения: {e}"}
 
 
-# Запуск
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = TetherClient(root)
-    root.mainloop()
+def on_check_click():
+    """Обработчик кнопки (запускается в отдельном потоке)"""
+    username = entry_username.get().strip()
+    if not username:
+        messagebox.showwarning("Ввод", "Введите имя пользователя")
+        return
+
+    btn_check.config(state="disabled")
+    label_result.config(text="🔄 Запрос к серверу...", foreground="blue")
+
+    def background_task():
+        result = check_user_on_server(username)
+        print(result)
+        root.after(0, lambda: update_ui(result))
+
+    threading.Thread(target=background_task, daemon=True).start()
+
+
+def update_ui(result: dict):
+    """Обновляет интерфейс с результатом (вызывается в главном потоке)"""
+    btn_check.config(state="normal")
+
+    if "error" in result:
+        label_result.config(text=f"❌ {result['error']}\nПопробуйте ещё раз", foreground="red")
+        messagebox.showerror("Ошибка", result["error"])
+    else:
+        status_icon = "✅ ошибок нет\n" if result.get("isSuccess") else "❌"
+        color = "green" if result.get("isSuccess") else "orange"
+        ans = 'Такой пользователь есть' if result.get('data') else 'Такого пользователя нет'
+        label_result.config(text=f"{status_icon} {ans}", foreground=color)
+
+
+# 🔹 Создаём окно (без изменений!)
+root = tk.Tk()
+root.title("Tether Client")
+root.geometry("400x250")
+root.resizable(False, False)
+
+ttk.Label(root, text="Проверка пользователя", font=("Arial", 14, "bold")).pack(pady=10)
+
+frame_input = ttk.Frame(root)
+frame_input.pack(pady=5)
+
+ttk.Label(frame_input, text="Username пользователя:").pack(side="left", padx=5)
+entry_username = ttk.Entry(frame_input, width=20)
+entry_username.pack(side="left", padx=5)
+entry_username.focus()
+
+btn_check = ttk.Button(root, text="Проверить", command=on_check_click)
+btn_check.pack(pady=10)
+
+label_result = ttk.Label(root, text="", font=("Arial", 10))
+label_result.pack(pady=10)
+
+entry_username.bind("<Return>", lambda e: on_check_click())
+
+root.mainloop()
