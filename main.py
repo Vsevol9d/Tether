@@ -158,8 +158,8 @@ class Server():
             json.dumps({"id_task": id_task, "response": self.notice[user_id]}))
 
     async def start_server(self) -> None:
-        #port = int(os.environ.get("PORT", 5000))
-        async with websockets.serve(self.handler, "0.0.0.0", 10000):
+        port = int(os.environ.get("PORT", 5000))
+        async with websockets.serve(self.handler, "0.0.0.0", port):
             print("Server started")
             await asyncio.Future()
 
