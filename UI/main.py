@@ -1,4 +1,5 @@
 import customtkinter as ctk
+import asyncio
 import sys, os
 from pathlib import Path
 
@@ -7,6 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_AVATAR_PATH = str(BASE_DIR / "assets" / "default_avatar.jpg")
 
 sys.path.append(os.path.abspath("../Database"))
+sys.path.append(os.path.abspath("../OnlineServer"))
 
 from UI.pages.start_page import StartPage
 from UI.pages.chatting_page import ChattingPage
@@ -15,6 +17,7 @@ from UI.pages.sign_up_page import SignUpPage
 from UI.element_views.chat_view import MessageView, ChatView, ChatInfoView
 from UI.element_views.selectable_chat_view import SelectableChatView
 from Database.api import Session, DataBase
+from OnlineServer.OnlineClient import Client
 
 # Обработчик ошибок со стороны UI
 from error_handler import ErrorHandler
@@ -52,7 +55,7 @@ class App:
         self.adding_page = None
 
     def switch_to_chatting_page(self) -> None:
-        if not self.is_authorized:
+        if self.is_authorized:
             # Получаем чаты по id пользователя
             chats = db.select_all_chats_by_id_user(user_id=self.user['id'])
             if chats['isSuccess']:
@@ -76,7 +79,7 @@ class App:
                     else:
                         error = ErrorHandler(self.root, participants_response['error'])
 
-                    # Получаем сообщения по id чата
+                    # Получаем последнее сообщение по id чата
                     messages = db.select_all_messages_by_chat_id(chat_id=chat_id)
                     if messages['isSuccess']:
                         messages_list = messages['data']
