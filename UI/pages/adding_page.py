@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from tkinter import filedialog
+from async_tkinter_loop import async_handler
 
 class AddingPage(ctk.CTkScrollableFrame):
     def __init__(self, master, back_to_chats, on_chat_adding_submit, addable_users, addable_users_names):
@@ -127,7 +128,7 @@ class AddingPage(ctk.CTkScrollableFrame):
             border_width=2,
             width=200,
             height=45,
-            command=self.returning
+            command=async_handler(self.returning)
         )
 
         self.submit_button = ctk.CTkButton(
@@ -135,7 +136,7 @@ class AddingPage(ctk.CTkScrollableFrame):
             text="Создать чат",
             width=200,
             height=45,
-            command=self.submitting
+            command=async_handler(self.submitting)
         )
 
         self.error_label = ctk.CTkLabel(

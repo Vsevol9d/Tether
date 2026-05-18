@@ -41,8 +41,8 @@ def health_check_users(db):
     #                    password='Sev'))
     # print(db.users.add(name='Юра', username='Yura', lastname='Мельник', birthday='14-07-2011', phone=None, email=None,
     #                    password='Yur'))
-    print(db.users.add(name='123', username='123', lastname='123-123', birthday=None, phone=None, email=None,
-                       password='123'))
+    # print(db.users.add(name='123', username='123', lastname='123-123', birthday=None, phone=None, email=None,
+    #                    password='123'))
 
     # print(db.users.update(1, 'password', 'Nik'))
     # print(db.users.update(9, 'id', 2))
@@ -325,14 +325,14 @@ def set_backup(db, all_data: dict):
 with Session() as session:
     db = DataBase(session)
     # РАБОЧАЯ ЧАСТЬ
-    print(db.users.exists(username='Nikita'))
-    exit()
+    # print(db.users.exists(username='Nikita'))
     # print(db.select_user_by_username('Nikita'))
     health_check_users(db)  # Посмотреть всех пользователей
     health_check_chats(db)  # Посмотреть чаты
     health_check_participants(db)  # Участники групп
     health_check_messages(db)  # Сообщения
     health_check_friends(db)
+    exit()
     # test_real_simulated(db)  # Симуляция регистрации или авторизации
 
     # бэкап всех тестовых данных для быстрого восстановления

@@ -5,20 +5,16 @@ import asyncio
 import datetime
 import uuid
 import json
-import sys, os
-
-from Server.Client import username
 
 from sqlalchemy.testing import future
 from sqlalchemy.util import await_only
 
-
 url = "wss://tether-jj4v.onrender.com/ws" #ссылка на сервер
 
-name = 'Юрчик'
-username = 'Yura'
-password = 'Yur'
-class TaskManager:
+name = "seva"
+username = "seva23"
+password = "1234"
+class TaskManager():
     def __init__(self):
         """
         task_in_progress - задачи в процессе
@@ -98,7 +94,7 @@ class TaskManager:
             print("3")
             self.tasks_in_progress.add(task)
             task.add_done_callback(lambda x: self.remove_task(x))
-            print("Задача запущена")
+            print("Здача запущена")
     async def run_with_timeout(self, function, id_task: str, timeout: int):
         """
         Ожидает выполнения функции по заданному времени
@@ -259,7 +255,7 @@ class Client:
 
         :param id_task: id задачи
         :param websocket: объект - соединение с пользователем
-        :param user_id: id пользователя1
+        :param user_id: id пользователя
         """
         await websocket.send(
             json.dumps({"action" : "get_notifications", "id_task": id_task, "params": [user_id]}))
