@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from async_tkinter_loop import async_handler
 
 #----------------------# Вид чата #-------------------------
 
@@ -61,13 +62,15 @@ class ChatView(ctk.CTkFrame):
         )
         self.message_entry.grid_propagate(False)
 
+        self.message_entry.bind("<Return>", async_handler(lambda event: self.send_message()))
+
         self.send_button = ctk.CTkButton(
             self,
             height=40,
             width=40,
             text='',
             corner_radius=20,
-            command=self.send_message
+            command=async_handler(self.send_message)
         )
         self.send_button.grid_propagate(False)
 

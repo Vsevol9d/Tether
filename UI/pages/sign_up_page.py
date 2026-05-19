@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from async_tkinter_loop import async_handler
 
 class SignUpPage(ctk.CTkFrame):
     def __init__(self, master, register_method, login_method):
@@ -75,7 +76,7 @@ class SignUpPage(ctk.CTkFrame):
             self,
             text='Подтвердить',
             width=200, height=45,
-            command=self.register
+            command=async_handler(self.register)
         )
 
         self.login_button = ctk.CTkButton(
@@ -144,7 +145,7 @@ class SignUpPage(ctk.CTkFrame):
         # Настраиваем текст и команды
         self.password_entry_label.configure(text='Пароль')
         self.process_label.configure(text='Вход в аккаунт')
-        self.submit_button.configure(command=self.login)
+        self.submit_button.configure(command=async_handler(self.login))
         self.error_label.configure(text='')
 
     def show_register_interface(self):
@@ -161,7 +162,7 @@ class SignUpPage(ctk.CTkFrame):
         # Настраиваем текст и команды
         self.password_entry_label.configure(text='Придумайте пароль')
         self.process_label.configure(text='Создание аккаунта')
-        self.submit_button.configure(command=self.register)
+        self.submit_button.configure(command=async_handler(self.register))
         self.error_label.configure(text='')
 
     def show(self):

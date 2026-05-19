@@ -23,7 +23,7 @@ class TaskManager():
         id_response - словарь {id_task : response}
         """
 
-        self.tasks_in_progress = set()  #
+        self.tasks_in_progress = set()
         self.queue_tasks = asyncio.Queue()
         self.running = True
         self.id_response = {}
@@ -143,7 +143,7 @@ class TaskManager():
 
 
 # Создание задачи:
-# await self.task_manager.add_task(self.methodename, str(uuid.uuid4()), websocket, *input_data)
+# await self.task_manager.add_task(self.methodname, str(uuid.uuid4()), websocket, *input_data)
 class Client:
     def __init__(self):
         """
