@@ -4,17 +4,17 @@
 Убрать комментарии в Database.init на 11 строчке в зависимости наличия postgresql.
 Убрать комментарии в Database.models.user на 17 строчке в зависимости наличия postgresql.
 """
-
+from django.db.models.expressions import result
 # from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 import traceback  #  Подробное описание ошибок
 from functools import wraps
 
-# connection = ("postgresql://super_admin:D6xOVkD3GEk6q7ZIhlPGRspFY40v4mZf@dpg-d7r3olnlk1mc73cuqv4g-a"
-#               ".oregon-postgres.render.com/communicator_kzeo") # Удалённая синхронная БД (render.com)
 connection = ("postgresql://super_admin:D6xOVkD3GEk6q7ZIhlPGRspFY40v4mZf@dpg-d7r3olnlk1mc73cuqv4g-a"
-              "/communicator_kzeo") # Удалённая синхронная БД. Доступно только для сервера в render.com
+              ".oregon-postgres.render.com/communicator_kzeo") # Удалённая синхронная БД (render.com)
+# connection = ("postgresql://super_admin:D6xOVkD3GEk6q7ZIhlPGRspFY40v4mZf@dpg-d7r3olnlk1mc73cuqv4g-a"
+#               "/communicator_kzeo") # Удалённая синхронная БД. Доступно только для сервера в render.com
 
 # connection = ("postgresql+asyncpg://super_admin:D6xOVkD3GEk6q7ZIhlPGRspFY40v4mZf@dpg-d7r3olnlk1mc73cuqv4g-a"
 #               ".oregon-postgres.render.com/communicator_kzeo")  # Удалённая асинхронная БД (render.com)
@@ -22,12 +22,12 @@ connection = ("postgresql://super_admin:D6xOVkD3GEk6q7ZIhlPGRspFY40v4mZf@dpg-d7r
 # connection = "postgresql+asyncpg://postgres:Sokol_12@localhost:5432/postgres"  # Локальная асинхронная БД
 engine = create_engine(connection)
 Base = declarative_base()
-Session = sessionmaker(bind=engine)
-# Session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+Session = sessionmaker(bind=engine, autocommit=False)
+# Session = sessionmaker(engine, class_=AsyncSession)
 
 
 # Декоратор для обработки ошибок
-def catching_errors():
+def catching_errors(commit: bool = False):
     """
     Декоратор для обработки ошибок
     При наличии ошибки возращает
@@ -38,11 +38,17 @@ def catching_errors():
         @wraps(func)
         def wrapper(*args, **kwargs):
             try:
-                return func(*args, **kwargs)
+                result = func(*args, **kwargs)
+                if commit: args[0].session.commit()  # args[0] == self в вызываемой функции
+
+                return {'isSuccess': True, 'data': result}
             except Exception as e:
-                return {'isSuccess': False,
-                        # 'error': traceback.format_exc(),
-                        'error': f'{type(e).__name__}: {e.args}',
-                        'long_error': traceback.format_exc()}  # Цепочка выполнения кода
+                if commit: args[0].session.rollback()
+                return {
+                    'isSuccess': False,
+                    # 'error': traceback.format_exc(),
+                    'error': f'{type(e).__name__}: {e.args}',
+                    'long_error': traceback.format_exc()  # Цепочка выполнения кода
+                }
         return wrapper
     return decorator

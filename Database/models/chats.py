@@ -17,6 +17,10 @@ class Chats(Base):
     avatar_url = Column(Integer)
     date_created = Column(String(10), nullable=False, server_default=text("to_char(current_date, 'DD-MM-YYYY')"))
     type = Column(String, nullable=False, server_default="private")
+    user_count = Column(Integer, nullable=False, server_default=text("0"))
+    last_sender_id = Column(Integer, nullable=True)
+    last_sender_name = Column(String)
+    last_mes = Column(String)
 
     participants = relationship("Participants", back_populates="chat", cascade="all, delete-orphan")
     users = relationship("Users", secondary="participants", back_populates="chats", overlaps="participants")

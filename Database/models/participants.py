@@ -6,7 +6,6 @@ from sqlalchemy.orm import relationship
 # Выбор данных для роли участника чата
 allowedListUserRoles = ("Участник", "Пре-админ", "Админ")
 
-# Таблица chats
 class Participants(Base):
     __tablename__ = 'participants'
     __table_args__ = (CheckConstraint(
