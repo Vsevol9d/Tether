@@ -1,4 +1,4 @@
-from bleak import BleakScanner, BleakClient
+"""from bleak import BleakScanner, BleakClient
 import asyncio
 import socket
 
@@ -31,4 +31,4 @@ async def main():
 
 
 asyncio.run(dev())
-asyncio.run(main())
+asyncio.run(main())"""
