@@ -4,7 +4,6 @@
 Убрать комментарии в Database.init на 11 строчке в зависимости наличия postgresql.
 Убрать комментарии в Database.models.user на 17 строчке в зависимости наличия postgresql.
 """
-from django.db.models.expressions import result
 # from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
