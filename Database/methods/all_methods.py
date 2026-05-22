@@ -27,11 +27,10 @@ class DataBase(BasicMethods):
     @catching_errors()
     def select_all_users_by_chat_id(self, chat_id: int):
         """
-        Получение всех пользователей, которые состоят в чате с chat_id = chat_id
+        Получение всех пользователей, состоящих в чате
 
-        :param chat_id: id чата
-        :return: словарь, где isSuccess = True, если ошибок нет, иначе False.
-        В data храниться список словарей с инфо об пользователях
+        :param chat_id: id чата, участников которого нужно вывести
+        :return: isSuccess, где в data сохранён список словарей с полной инфой о пользователях
         """
 
         query = select(Users.__table__).join(Users.participants).where(Participants.chat_id == chat_id)
@@ -40,12 +39,24 @@ class DataBase(BasicMethods):
 
     @catching_errors()
     def select_user_by_username(self, username: str) -> dict:
+        """
+        Вывод всей инфы о пользователе, через username
+
+        :param username: username пользователя, которого нужно вывести
+        :return: isSuccess, где в data сохранён словарь о всех данных пользователя
+        """
         query = select(Users.__table__).where(Users.username == username)
         data = self.session.execute(query).mappings().one()
         return dict(data)
 
     @catching_errors()
     def select_user_by_id(self, id: int) -> dict:
+        """
+        Вывод всей инфы о пользователе, через id
+
+        :param id: id пользователя, которого нужно вывести
+        :return: isSuccess, где в data сохранён словарь о всех данных пользователя
+        """
         query = select(Users.__table__).where(Users.id == id)
         data = self.session.execute(query).mappings().one()
         return dict(data)
@@ -53,10 +64,10 @@ class DataBase(BasicMethods):
     @catching_errors()
     def select_all_chats_by_id_user(self, user_id: int):
         """
-        Получение всех чатов, в которых состоит пользователь с id = user_id
+        Получение всех чатов, в которых состоит пользователь
 
-        :param user_id: id нужного пользователя
-        :return: Список словарей, где словарь - данные о чате
+        :param user_id: id пользователя, список чатов которого нужно выдать
+        :return: isSuccess, где в data сохранён список словарей с полной инфой о чатах пользовател
         """
 
         query = select(Chats.__table__).join(Chats.participants).where(Participants.user_id == user_id)
@@ -64,107 +75,33 @@ class DataBase(BasicMethods):
         return [dict(row) for row in data]
     
     @catching_errors()
-    def select_user_by_chat_id(self, chat_id: int, user_id: int):
+    def select_user_by_chat_id(self, chat_id: int, your_user_id: int) -> dict:
+        """
+        Получение следующей инфы о пользователе, состоящем в личной переписке:
+        `id`, `name`, `username`, `lastname`, `birthday`, `datе_created`, `avatar_url`, `last_time_online`, `phone`, `email`
+
+        :param chat_id: id чата с `type == "private" -> True`, инфо участника которого нужно получить
+        :param your_user_id: id участника переписки, которому нужно узнать о юзере (то есть не сам пользователь, данные которого нужно узнать)
+        :return: isSuccess, где в data сохранён словарь с инфой о пользователе в личной переписке
+        """
         query = (
             select(Users.id, Users.name, Users.username, Users.lastname, Users.birthday, Users.date_created,
                    Users.avatar_url, Users.last_time_online, Users.phone, Users.email)
             .join(Participants, Users.id == Participants.user_id)
-            .where(Participants.chat_id == chat_id, Users.id != user_id)
+            .where(Participants.chat_id == chat_id, Users.id != your_user_id)
         )
         data = self.session.execute(query).mappings().one()
         return dict(data)
 
-    # Новые методы:
-    chats_info_ = {'isSuccess': True,
-                  'data': [
-                      {'id': 1,
-                       'type': 'group',
-                       'name': 'Разработка немыслимого',
-                       'small_avatar_url': None,
-                       'last_mes': 'Спам 5.2',
-                       'last_user': 'Вы',  # Потому что я отправитель
-                       'user_count': 3,
-                       },
-                      {'id': 2,
-                       'type': 'private',
-                       'name': 'ЮН',
-                       'small_avatar_url': None,
-                       'last_mes': 'Дельно, но хотелось...',  # 20 символов.strip() + "..."
-                       'last_user': 'Юра',
-                       'user_count': None  # т. к. это личная переписка
-                       },
-                      {'id': 2,
-                       'type': 'private',
-                       'name': 'НС',
-                       'small_avatar_url': None,
-                       'last_mes': 'Начните общение',
-                       'last_user': None,
-                       'user_count': None  # т. к. всегда 2 юзера
-                       }
-                  ]
-                  }  # Сделано! По id пользователя выводит при успехе данные всех чатов для их отображения
-    messages_info_ = {'isSuccess': True,
-                     'data': [
-                         {'id': 11,
-                          'type': 'text',
-                          'text': 'Спам',
-                          'file_id': None,
-                          'creation_date_time': '02-05-2026 18:05:27',
-                          'user_id': 1,
-                          'sender_name': 'Вы'
-                          },
-                         {'id': 12,
-                          'type': 'text',
-                          'text': 'Спам 3',
-                          'file_id': None,
-                          'creation_date_time': '02-05-2026 18:05:31',
-                          'user': 'Юра',
-                          'user_id': 3
-                          },
-                         {'id': 13,
-                          '...': '...'},
-                         {'id': 14,
-                          '...': '...'},
-                         {'id': 15,
-                          'type': 'text',
-                          'text': 'Спам 5.2',
-                          'file_id': None,
-                          'creation_date_time': '02-05-2026 18:05:52',
-                          'user': 'Вы',
-                          'user_id': 1
-                          }
-                     ]
-                     }  # Выводит последние сообщения по id чата (добавить sender_name в messages)
-    chat_info_with_participants_ = {'isSuccess': True,
-                 'data': {'id': 11,
-                          'name': 'Разработка немыслимого',
-                          'avatar_url': None,
-                          'date_created': '02-05-2026',
-                          'users': [
-                              {
-                                  'id': 1,
-                                  'name': 'Никита',
-                                  'avatar_url': None,
-                                  'last_time_online': '02-05-2026 18:05:27'
-                              },
-                              {
-                                  'id': 2,
-                                  'name': 'Юра',
-                                  'avatar_url': None,
-                                  'last_time_online': '02-05-2026 15:15:52'
-                              },
-                              {
-                                  'id': 3,
-                                  'name': 'Сева',
-                                  'avatar_url': None,
-                                  'last_time_online': '02-05-2026 11:11:11'
-                              }
-                          ]
-                          }
-                 }  # Выводит инфо об чате и его пользователях по id чата
-
     @catching_errors()
     def select_chats(self, user_id: int):
+        """
+        Вывод полной нужной инфы для вывода всех чатов пользователя
+
+        :param user_id: id пользователя, для которого нужно вывести список его чатов
+        :return: isSuccess, где в data сохранён список словарей содержащие: `id`, `type`, `name`, `avatar_url`, `last_user_id`, `last_user_name`, `last_mes`, `user_count` (если последние сообщение написано юзером, для которого выводятся данные, то в `last_user_name` будет `'Вы'`)
+
+        """
 
         query = (
             select(
@@ -179,7 +116,7 @@ class DataBase(BasicMethods):
         chats_data = []
 
         for row in rows:
-            # 👤 Логика last_user
+            # Логика last_user
             last_sender_name = row.last_sender_name
             if row.last_sender_id == user_id:
                 last_sender_name = "Вы"
@@ -188,7 +125,7 @@ class DataBase(BasicMethods):
                 "id": row.id,
                 "type": row.type,
                 "name": row.name,
-                "small_avatar_url": row.avatar_url,
+                "avatar_url": row.avatar_url,
                 "last_user_id": row.last_sender_id,
                 "last_user_name": last_sender_name,
                 "last_mes": row.last_mes,
@@ -200,14 +137,12 @@ class DataBase(BasicMethods):
     @catching_errors()
     def select_recent_messages(self, chat_id: int, id_last_mes: int = None, quantity: int = 100):
         """
-        Возвращает последние сообщения из чата.
+        Вывод определённого количества определённых сообщений
 
-        :param chat_id: Id чата, сообщения которого будут возвращены.
-        :param id_last_mes: Id последнего сообщения, которое вернётся. Если None, используется максимальный id в чате.
-        :param quantity: Количество сообщений для возврата. По умолчанию 60
-        :return: Словарь, где isSuccess = True, если ошибок нет, data = список словарей с инфо об сообщениях,
-        иначе isSuccess = False, error = короткая ошибка, long_error = весь traceback
-        В data храниться список словарей с инфо об пользователях
+        :param chat_id: id чата, в котором нужно вывести сообщения
+        :param id_last_mes: id последнего сообщения, которое должно быть возвращено (последние сообщение имеет наибольший id). По умолчанию равен последнему id в чате
+        :param quantity: число сообщений, которое будет возвращено. По умолчанию - 100
+        :return: isSuccess, где в data сохранён список словарей про сообщения
         """
 
         # Нахождение максимального id в данном чате, если не указан id последнего сообщения
@@ -227,9 +162,13 @@ class DataBase(BasicMethods):
         return [dict(row) for row in rows][::-1]
 
     @catching_errors()
-    def select_chat_info(self, chat_id: int) -> list | dict:
+    def select_chat_info(self, chat_id: int) -> dict:
         """
-        Для вызова только если нужно узнать инфо группы (type = 'group')
+        Вывод информации о чате
+        ВАЖНО: используется, только если `Chats.type == 'group' -> True`. Если `Chats.type == 'private' -> True`, то использовать `select_user_by_chat_id`
+
+        :param chat_id: id чата, инфо о котором нужно вывести
+        :return: isSuccess, где в data сохранён список словарей содержащие: id, name, avatar_url, date_created, participants; participants - ключ от словаря, содержащий инфо об участниках для их отображения: `id`, `name`, `avatar_url`, `last_time_online`
         """
         query_chat = select(Chats.id, Chats.name, Chats.avatar_url, Chats.date_created).where(Chats.id==chat_id)
         query = (

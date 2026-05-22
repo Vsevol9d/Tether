@@ -14,7 +14,7 @@ users_data = [
         {'name': '123', 'username': '123', 'lastname': '123-123', 'birthday': None, 'phone': None, 'email': None,
          'password': '123'},
 
-        {'name': 'Система', 'username': 'System', 'password': 'Tether_sys0'}
+        {'name': '', 'username': 'System', 'password': 'Tether_sys0'}
     ]
 chats_data = [
         {'name': 'Разработка немыслимого', 'type': 'group'},

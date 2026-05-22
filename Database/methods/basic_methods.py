@@ -100,7 +100,7 @@ class BasicMethods(Generic[T]):
         :return: isSuccess без data.
         """
 
-        return self._delete(*id)
+        return self._delete(id)
 
 
     def _add(self, **kwargs) -> dict:
