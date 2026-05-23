@@ -1,4 +1,3 @@
-from asyncio import coroutines
 
 import websockets
 import asyncio
@@ -6,8 +5,6 @@ import datetime
 import uuid
 import json
 
-from sqlalchemy.testing import future
-from sqlalchemy.util import await_only
 
 url = "wss://tether-jj4v.onrender.com/ws" #ссылка на сервер
 
@@ -51,7 +48,7 @@ class TaskManager():
                           "timeout" : timeout}
         self.current_task = True
         await self.queue_tasks.put(self.task_info)
-        print(future)
+        print("future:", future)
         return await future
 
 
@@ -83,14 +80,13 @@ class TaskManager():
             #print(params)
             timeout = task_info.get("timeout")
             if timeout:
-                #print("timeout")
+                print("timeout")
                 task = asyncio.create_task(
                     self.run_with_timeout(function(id_task, websocket, *params), id_task, timeout)
                 )
             else:
-                #print("timeout -")
+                print("timeout -")
                 task = asyncio.create_task(function(id_task, websocket, *params))
-                #print(task)
             print("3")
             self.tasks_in_progress.add(task)
             task.add_done_callback(lambda x: self.remove_task(x))
@@ -119,7 +115,7 @@ class TaskManager():
         """
         async for response in websocket:
             t_response = json.loads(response)
-            print(t_response)
+            print("1", t_response)
 
             if t_response["id_task"] in self.id_response:
 
@@ -129,7 +125,7 @@ class TaskManager():
 
                 if not future.done():
                     future.set_result(t_response["response"])
-                    print(self.id_response[t_response["id_task"]])
+                    print("1", self.id_response[t_response["id_task"]])
 
                 del self.id_response[t_response["id_task"]]
           #self.id_response[t_response["id_task"]] = t_response["response"]
@@ -178,8 +174,8 @@ class Client:
                 manager_task = asyncio.create_task(self.task_manager.start_tasks(websocket))
                 await asyncio.sleep(0.1)
                 print("Start")
-                reg = await self.task_manager.add_task(self.registration, str(uuid.uuid4()), websocket, name, username, password)
-                print(reg)
+                reg = await self.task_manager.add_task(self.registration, str(uuid.uuid4()), websocket, name, username, password, "latsnnhfnjf")
+
                 #
                 #здесь все запуски задач
                 #
@@ -187,15 +183,16 @@ class Client:
             except Exception as e:
                 print(f"Error: {e}")
 
-    async def get_chats(self, id_task: str, websocket)->None:
+    async def get_chats(self, id_task: str, websocket, id_user: str)->None:
         """
         Запрос серверу на получение всех чатов
 
         :param id_task: id задачи
         :param websocket: объект - соединение с пользователем
+        :param id_user: id пользователя
         """
         await websocket.send(
-            json.dumps({"action": "get_chats", "id_task": id_task, "params": []}))
+            json.dumps({"action": "get_chats", "id_task": id_task, "params": [id_user]}))
 
 
     async def send_message(self, id_task: str, websocket, message_type: str, text: str, chat_id: str, user_id: str)->None:
@@ -224,7 +221,7 @@ class Client:
             json.dumps({"action": "open_chat", "id_task": id_task, "params": [user_id]})
         )
 
-    async def registration(self, id_task: str, websocket, name: str, username: str, password: str)->None:
+    async def registration(self, id_task: str, websocket, name: str, username: str, password: str, lastname: str)->None:
         """
         Запрос серверу на регистрацию
 
