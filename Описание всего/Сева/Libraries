@@ -1,0 +1,9 @@
+Используемый библиотеки:
+websockets==16.0
+
+Встроенные:
+asyncio
+os
+sys
+json
+uuid
