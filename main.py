@@ -60,7 +60,7 @@ class Server():
             out = self.db.users.exists(username=username)
             print(out)
             if not out:
-                out = self.db.users.add(name=name, username=username, password=password)
+                out = self.db.users.add(name=name, username=username, password=password, lastname=lastname)
                 # out = добавление пользователя в БД, получить словарь или ошибку
             # out = db.users.exists("username", username) # здесь вызвать метода проверки возможности добавления пользователя с пааметрами name, username, lastname (они будут равны = ["Никита2", "Nikitka", "Соколов2"])
             await websocket.send(json.dumps({"id_task": id_task, "response": out["data"]}))
