@@ -12,7 +12,7 @@ class Users(Base):
     username = Column(String(30), nullable=False, unique=True)
     lastname = Column(String(60))
     birthday = Column(String(10))
-    avatar_url = Column(Integer)
+    avatar_url = Column(String)
     date_created = Column(String(10), nullable=False, server_default=text("to_char(current_date, 'DD-MM-YYYY')"))
     last_time_online = Column(String(19), nullable=False, server_default=text("to_char(current_timestamp, 'DD-MM-YYYY HH24:MI:SS')"))
     password = Column(String(52), nullable=False)

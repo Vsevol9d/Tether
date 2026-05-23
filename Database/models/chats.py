@@ -14,7 +14,7 @@ class Chats(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(60), nullable=False)
-    avatar_url = Column(Integer)
+    avatar_url = Column(String)
     date_created = Column(String(10), nullable=False, server_default=text("to_char(current_date, 'DD-MM-YYYY')"))
     type = Column(String, nullable=False, server_default="private")
     user_count = Column(Integer, nullable=False, server_default=text("0"))

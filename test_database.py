@@ -2,6 +2,16 @@
 Код для теста БД
 """
 
+# Так будут формироваться названия для файлов (текущее время в миллисекундах + "_" + набор из 8 символов)
+# import time, secrets
+#
+# def generate_unique_filename(extension: str = 'svg') -> str:
+#     timestamp_ms = int(time.time() * 1000)
+#     suffix = secrets.token_hex(4)  # 8 символов, например 'a3f5c2b1'
+#     return f"{timestamp_ms}_{suffix}.{extension.lstrip('.')}"
+#
+# print(generate_unique_filename())
+
 from Database.api import Session, DataBase
 
 users_data = [
@@ -109,7 +119,7 @@ def health_check_users(model='users'):
     # view_result_func(db.users.add_many(*users_data))
     # db.users.update(5, 'id', 0)
     # view(model)
-    # view_result_func(db.users.update(4, name='Тестовый аккаунт', username='Test_ak'))
+    view_result_func(db.users.update(1, avatar_url='1779523841751_f9d7eb42'))
     view(model)
 
 def health_check_chats(model='chats'):
@@ -174,10 +184,10 @@ db = DataBase(Session())
 # обновление и удаление полей Messages.sender_name, Chats: user_count, last_sender_id, last_sender_name, last_mes
 # если пользователь обновлён или удалён
 
-# health_check_users()  # Посмотреть всех пользователей
+health_check_users()  # Посмотреть всех пользователей
 # health_check_chats()  # Посмотреть чаты
 # health_check_participants()  # Участники групп
 # health_check_messages()  # Сообщения
 # health_check_friends() # Друзья
 
-test_navigation(user_id=1)  # Пример получения данных
+# test_navigation(user_id=1)  # Пример получения данных

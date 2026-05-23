@@ -23,7 +23,7 @@ class Messages(Base):
     id = Column(BigInteger, primary_key=True)
     type = Column(String, nullable=False, default="text")
     text = Column(String(4096))
-    file_id = Column(Integer)
+    file_id = Column(String)
     creation_date_time = Column(String(19), nullable=False, server_default=sql.text("to_char(current_timestamp, 'DD-MM-YYYY HH24:MI:SS')"))
     chat_id = Column(Integer, ForeignKey('chats.id', ondelete='CASCADE'), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'), nullable=True, index=True)

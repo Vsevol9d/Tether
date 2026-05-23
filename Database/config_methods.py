@@ -6,8 +6,8 @@
 from Database.init import Base, engine
 from typing import Optional
 from pathlib import Path
-from datetime import datetime
 import subprocess, os
+from sqlalchemy import text
 
 def CREATE_ALL_TABLE():
     from Database.models.users import Users
@@ -26,13 +26,18 @@ def DROP_ALL():
 
 def ADD_COLUMN(model, column):
     # Добавить колонку в таблицу users
-    from sqlalchemy import text
     with engine.connect() as conn:
         conn.execute(text(f"ALTER TABLE {model} ADD COLUMN {column} TEXT"))
         # conn.execute(text("ALTER TABLE chats ADD COLUMN id_last_mes INTEGER DEFAULT 0;"))
 
         # Присваивание NOT NULL
         # conn.execute(text("ALTER TABLE users ALTER COLUMN password SET NOT NULL;"))
+        conn.commit()
+
+def UPDATE_COLUMN(model, column):
+    # Добавить колонку в таблицу users
+    with engine.connect() as conn:
+        conn.execute(text(f"ALTER TABLE {model} ALTER COLUMN {column} TYPE VARCHAR"))
         conn.commit()
 
 
@@ -90,12 +95,12 @@ class PostgresBackupManager:
         return False
 
 
-backup = PostgresBackupManager("communicator_kzeo",
-                               "super_admin",
-                               "D6xOVkD3GEk6q7ZIhlPGRspFY40v4mZf",
-                               "dpg-d7r3olnlk1mc73cuqv4g-a.oregon-postgres.render.com",  # текущий хост
-                               r"D:\Programs\PostgreSQL\bin"  # путь к ...\PostgreSQL\bin
-                               )
+# backup = PostgresBackupManager("communicator_kzeo",
+#                                "super_admin",
+#                                "D6xOVkD3GEk6q7ZIhlPGRspFY40v4mZf",
+#                                "dpg-d7r3olnlk1mc73cuqv4g-a.oregon-postgres.render.com",  # текущий хост
+#                                r"D:\Programs\PostgreSQL\bin"  # путь к ...\PostgreSQL\bin
+#                                )
 
 # Создание
 # timestamp = datetime.now().strftime("%Y-%m-%d")
@@ -114,3 +119,6 @@ backup = PostgresBackupManager("communicator_kzeo",
 # ADD_COLUMN('chats', 'last_sender')
 # DROP_ALL()
 # CREATE_ALL_TABLE()
+UPDATE_COLUMN('users', 'avatar_url')
+UPDATE_COLUMN('chats', 'avatar_url')
+UPDATE_COLUMN('messages', 'file_id')
