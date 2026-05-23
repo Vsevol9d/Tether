@@ -10,10 +10,10 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 import traceback  #  Подробное описание ошибок
 from functools import wraps
 
-connection = ("postgresql://super_admin:D6xOVkD3GEk6q7ZIhlPGRspFY40v4mZf@dpg-d7r3olnlk1mc73cuqv4g-a"
-              ".oregon-postgres.render.com/communicator_kzeo") # Удалённая синхронная БД (render.com)
 # connection = ("postgresql://super_admin:D6xOVkD3GEk6q7ZIhlPGRspFY40v4mZf@dpg-d7r3olnlk1mc73cuqv4g-a"
-#               "/communicator_kzeo") # Удалённая синхронная БД. Доступно только для сервера в render.com
+#               ".oregon-postgres.render.com/communicator_kzeo") # Удалённая синхронная БД (render.com)
+connection = ("postgresql://super_admin:D6xOVkD3GEk6q7ZIhlPGRspFY40v4mZf@dpg-d7r3olnlk1mc73cuqv4g-a"
+              "/communicator_kzeo") # Удалённая синхронная БД. Доступно только для сервера в render.com
 
 # connection = ("postgresql+asyncpg://super_admin:D6xOVkD3GEk6q7ZIhlPGRspFY40v4mZf@dpg-d7r3olnlk1mc73cuqv4g-a"
 #               ".oregon-postgres.render.com/communicator_kzeo")  # Удалённая асинхронная БД (render.com)
