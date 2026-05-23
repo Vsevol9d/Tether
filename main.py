@@ -107,7 +107,7 @@ class Server():
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
 
-    async def get_chats(self, id_task: str, websocket) -> None:
+    async def get_chats(self, id_task: str, websocket, id_user: str) -> None:
         """
         Получение всех чатов
 
@@ -115,8 +115,8 @@ class Server():
         :param websocket: объект - соединение с пользователем
         """
         try:
-            chats = {}  # чаты из БД
-            await websocket.send(json.dumps({"id_task": id_task, "response": chats}))
+            out = self.db.select_all_chats_by_id_user(user_id=int(id_user))  # чаты из БД
+            await websocket.send(json.dumps({"id_task": id_task, "response": out["data"]}))
         except Exception as e:
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
