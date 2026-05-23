@@ -45,7 +45,7 @@ class Server():
                 if self.connected_clients[c] == websocket:
                     self.connected_clients[c].close()
 
-    async def registration(self, id_task: str, websocket, name: str, username: str, password: str) -> None:
+    async def registration(self, id_task: str, websocket, name: str, username: str, password: str, lastname: str) -> None:
         """
         Функция регистрации пользователя в БД
 
@@ -63,7 +63,7 @@ class Server():
                 out = self.db.users.add(name=name, username=username, password=password)
                 # out = добавление пользователя в БД, получить словарь или ошибку
             # out = db.users.exists("username", username) # здесь вызвать метода проверки возможности добавления пользователя с пааметрами name, username, lastname (они будут равны = ["Никита2", "Nikitka", "Соколов2"])
-            await websocket.send(json.dumps({"id_task": id_task, "response": out}))
+            await websocket.send(json.dumps({"id_task": id_task, "response": out["data"]}))
         except Exception as e:
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": f"Error: {e}"}))
@@ -81,7 +81,7 @@ class Server():
             # проверка на свопадения пароля с паролем username out = db.users.exists("username", username)
 
             out = self.db.users.exists(username=username, password=password)
-            await websocket.send(json.dumps({"id_task": id_task, "response": out}))
+            await websocket.send(json.dumps({"id_task": id_task, "response": out["data"]}))
             self.connected_clients[username] = websocket
         except Exception as e:
             print(f"Error: {e}")
@@ -102,7 +102,7 @@ class Server():
             out = self.db.messages.add(message_type=message_type, text=text, chat_id=chat_id, user_id=user_id)
 
             # добавить уведомление пользователям
-            await websocket.send(json.dumps({"id_task": id_task, "response": out}))
+            await websocket.send(json.dumps({"id_task": id_task, "response": out["data"]}))
         except Exception as e:
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
@@ -130,7 +130,7 @@ class Server():
         """
         try:
             out = self.db.users.exists("")
-            await websocket.send(json.dumps({"id_task": id_task, "response": out}))
+            await websocket.send(json.dumps({"id_task": id_task, "response": out["data"]}))
         except Exception as e:
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
