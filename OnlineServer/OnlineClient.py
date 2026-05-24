@@ -179,7 +179,7 @@ class Client:
                 #
                 #здесь все запуски задач
                 #
-                await  manager_task
+                await manager_task
             except Exception as e:
                 print(f"Error: {e}")
 
@@ -206,10 +206,12 @@ class Client:
         :param chat_id: id чата, куда отправляется сообщение
         :param user_id: id пользователя, который отправил сообщение
         """
+
+
         await websocket.send(
             json.dumps({"action": "create_message", "id_task": id_task, "params": [message_type, text, chat_id, user_id]}))
 
-    async def open_chat(self, id_task: str, websocket, user_id: str)->None:
+    async def get_messages(self, id_task: str, websocket, chat_id: str)->None:
         """
         Запрос серверу на получение чата(?)
 
@@ -218,7 +220,7 @@ class Client:
         :param user_id: id пользователя
         """
         await websocket.send(
-            json.dumps({"action": "open_chat", "id_task": id_task, "params": [user_id]})
+            json.dumps({"action": "get_messages", "id_task": id_task, "params": [chat_id]})
         )
 
     async def registration(self, id_task: str, websocket, name: str, username: str, password: str, lastname: str)->None:
@@ -246,7 +248,7 @@ class Client:
         await websocket.send(
             json.dumps({"action": "auth", "id_task": id_task, "params": [username, password]}))
 
-    async def get_notification(self, id_task: str, websocket, user_id: str)->None:
+    async def get_notification(self, id_task: str, websocket, id_user: str)->None:
         """
         Запрос на получение уведомлений пользователю
 
@@ -255,13 +257,37 @@ class Client:
         :param user_id: id пользователя
         """
         await websocket.send(
-            json.dumps({"action" : "get_notifications", "id_task": id_task, "params": [user_id]}))
+            json.dumps({"action" : "get_notifications", "id_task": id_task, "params": [id_user]}))
 
     async def clear_note(self)->None:
         """
         Отчищает список уведомлений
         """
         self.notifications.clear()
+
+    async def get_chat_data(self, id_task: str, websocket, chat_id: str)->None:
+        """
+        Запрос данных чата
+        :param id_task: id задачи
+        :param websocket: объект - соединение с пользователем
+        :param chat_id: id чата
+        """
+        await websocket.send(
+            json.dumps({"action": "get_chat_data", "id_task": id_task, "params": [chat_id]}))
+
+    async def create_chat(self, id_task: str, websocket, type: str, name: str, avatar_url: str)->None:
+        """
+        Запрос на создание чата
+
+        :param id_task: id задачи
+        :param websocket: объект - соединение с пользователем
+        :param type: тип чата
+        :param name: имя чата
+        :param avatar_url: ссылка на изображение автара чата
+        """
+
+        await websocket.send(
+            json.dumps({"action": "create_chat", "id_task": id_task, "params": [type, name, avatar_url]}))
 
 if __name__ == "__main__":
     client = Client()
