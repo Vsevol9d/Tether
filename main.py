@@ -197,7 +197,7 @@ class Server():
 
     async def start_server(self) -> None:
         port = int(os.environ.get("PORT", 5000))
-        async with websockets.serve(self.handler, "0.0.0.0", port):
+        async with websockets.serve(self.handler, "0.0.0.0", port, compression=None):
             print("Server started")
             await asyncio.Future()
 
