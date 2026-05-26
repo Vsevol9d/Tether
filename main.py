@@ -21,8 +21,10 @@ class Server():
             "auth": self.auth,
             "create_message": self.send_message,
             "get_chats": self.get_chats,
-            "open_chat": self.get_messages,
-            "get_notifications": self.give_notifications
+            "get_messages": self.get_messages,
+            "get_notifications": self.give_notifications,
+            "get_chat_data" : self.get_chat_data,
+            "create_chat" : self.create_chat
         }
 
         self.notice = {}  # user_id : notice[textNotice]
@@ -45,7 +47,7 @@ class Server():
                 if self.connected_clients[c] == websocket:
                     self.connected_clients[c].close()
 
-    async def registration(self, id_task: str, websocket, name: str, username: str, password: str, lastname: str) -> None:
+    async def registration(self, id_task: str, websocket, name: str, username: str, password: str, lastname: str = "") -> None:
         """
         Функция регистрации пользователя в БД
 
@@ -63,7 +65,7 @@ class Server():
                 out = self.db.users.add(name=name, username=username, password=password, lastname=lastname)
                 # out = добавление пользователя в БД, получить словарь или ошибку
             # out = db.users.exists("username", username) # здесь вызвать метода проверки возможности добавления пользователя с пааметрами name, username, lastname (они будут равны = ["Никита2", "Nikitka", "Соколов2"])
-            await websocket.send(json.dumps({"id_task": id_task, "response": out["data"]}))
+            await websocket.send(json.dumps({"id_task": id_task, "response": out}))
         except Exception as e:
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": f"Error: {e}"}))
@@ -81,7 +83,7 @@ class Server():
             # проверка на свопадения пароля с паролем username out = db.users.exists("username", username)
 
             out = self.db.users.exists(username=username, password=password)
-            await websocket.send(json.dumps({"id_task": id_task, "response": out["data"]}))
+            await websocket.send(json.dumps({"id_task": id_task, "response": out}))
             self.connected_clients[username] = websocket
         except Exception as e:
             print(f"Error: {e}")
@@ -102,7 +104,7 @@ class Server():
             out = self.db.messages.add(message_type=message_type, text=text, chat_id=chat_id, user_id=user_id)
 
             # добавить уведомление пользователям
-            await websocket.send(json.dumps({"id_task": id_task, "response": out["data"]}))
+            await websocket.send(json.dumps({"id_task": id_task, "response": out}))
         except Exception as e:
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
@@ -116,7 +118,7 @@ class Server():
         """
         try:
             out = self.db.select_all_chats_by_id_user(user_id=int(id_user))  # чаты из БД
-            await websocket.send(json.dumps({"id_task": id_task, "response": out["data"]}))
+            await websocket.send(json.dumps({"id_task": id_task, "response": out}))
         except Exception as e:
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
@@ -130,7 +132,7 @@ class Server():
         """
         try:
             out = self.db.select_recent_messages(chat_id=int(chat_id))
-            await websocket.send(json.dumps({"id_task": id_task, "response": out["data"]}))
+            await websocket.send(json.dumps({"id_task": id_task, "response": out}))
         except Exception as e:
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
@@ -159,9 +161,43 @@ class Server():
         await websocket.send(
             json.dumps({"id_task": id_task, "response": self.notice[user_id]}))
 
+    async def get_chat_data(self, id_task: str, websocket, chat_id: str) -> None:
+        """
+        Метод обработки данных чата
+
+        :param id_task: id задачи
+        :param websocket: объект - соединение с пользователем
+        :param chat_id: id чата
+        """
+        try:
+            out = self.db.select_chat_info(chat_id=int(chat_id))
+
+            await websocket.send(json.dumps({"id_task": id_task, "response": out}))
+        except Exception as e:
+            print(f"Error: {e}")
+            await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
+
+    async def create_chat(self, id_task: str, websocket, type: str, name: str, avatar_url: str) -> None:
+        """
+        Создание чата
+
+        :param id_task: id задачи
+        :param websocket: объект - соединение с пользователем
+        :param type: тип чата
+        :param name: имя чата
+        :param avatar_url: ссылка на изображение автара чата
+        """
+        try:
+            out = self.db.chats.add(type=type, name=name, avatar_url=avatar_url)
+
+            await websocket.send(json.dumps({"id_task": id_task, "response": out}))
+        except Exception as e:
+            print(f"Error: {e}")
+            await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
+
     async def start_server(self) -> None:
         port = int(os.environ.get("PORT", 5000))
-        async with websockets.serve(self.handler, "0.0.0.0", port):
+        async with websockets.serve(self.handler, "0.0.0.0", port, compression=None):
             print("Server started")
             await asyncio.Future()
 
