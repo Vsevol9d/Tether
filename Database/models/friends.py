@@ -1,5 +1,5 @@
 from Database.init import Base
-from sqlalchemy import Column, String, Integer, CheckConstraint, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, CheckConstraint, ForeignKey
 from sqlalchemy.orm import relationship
 
 # Выбор данных для типа связи

@@ -1,10 +1,10 @@
 # Инициализация классов таблиц и классов с методами
 from Database.methods.configuring_classes import (UsersQueries, ChatsQueries,
-                                                  ParticipantsQueries, MessagesQueries, FriendsQueries)
+                                                         ParticipantsQueries, MessagesQueries, FriendsQueries)
 from Database.methods.init import Users, Chats, Participants, Messages, Friends
 from Database.methods.basic_methods import BasicMethods
 from Database.init import catching_errors
-from sqlalchemy import select, text, func, and_, case, desc
+from sqlalchemy import select, func, desc
 
 # Главный класс - через него осуществляется работа с методами
 class DataBase(BasicMethods):
@@ -99,14 +99,14 @@ class DataBase(BasicMethods):
         Вывод полной нужной инфы для вывода всех чатов пользователя
 
         :param user_id: id пользователя, для которого нужно вывести список его чатов
-        :return: isSuccess, где в data сохранён список словарей содержащие: `id`, `type`, `name`, `avatar_url`, `last_user_id`, `last_user_name`, `last_mes`, `user_count` (если последние сообщение написано юзером, для которого выводятся данные, то в `last_user_name` будет `'Вы'`)
+        :return: isSuccess, где в data сохранён список словарей содержащие: `id`, `type`, `name`, `avatar_url`, `last_user_id`, `last_user_name`, `last_mes`, `user_count`, `date_created` (если последние сообщение написано юзером, для которого выводятся данные, то в `last_user_name` будет `'Вы'`)
 
         """
 
         query = (
             select(
                 Chats.id, Chats.name, Chats.avatar_url,Chats.type, Chats.user_count,
-                Chats.last_sender_id, Chats.last_sender_name, Chats.last_mes
+                Chats.last_sender_id, Chats.last_sender_name, Chats.last_mes, Chats.date_created
             )
             .join(Participants).where(Participants.user_id == user_id)
         )
@@ -130,12 +130,13 @@ class DataBase(BasicMethods):
                 "last_user_name": last_sender_name,
                 "last_mes": row.last_mes,
                 "user_count": row.user_count,
+                "date_created": row.date_created
             })
 
         return chats_data
 
     @catching_errors()
-    def select_recent_messages(self, chat_id: int, id_last_mes: int = None, quantity: int = 100):
+    def select_recent_messages(self, chat_id: int, id_last_mes: int = None, quantity: int = 100) -> list[dict]:
         """
         Вывод определённого количества определённых сообщений
 
@@ -162,23 +163,20 @@ class DataBase(BasicMethods):
         return [dict(row) for row in rows][::-1]
 
     @catching_errors()
-    def select_chat_info(self, chat_id: int) -> dict:
+    def select_chat_participants(self, chat_id: int) -> list[dict]:
         """
         Вывод информации о чате
         ВАЖНО: используется, только если `Chats.type == 'group' -> True`. Если `Chats.type == 'private' -> True`, то использовать `select_user_by_chat_id`
 
         :param chat_id: id чата, инфо о котором нужно вывести
-        :return: isSuccess, где в data сохранён список словарей содержащие: id, name, avatar_url, date_created, participants; participants - ключ от словаря, содержащий инфо об участниках для их отображения: `id`, `name`, `avatar_url`, `last_time_online`
+        :return: isSuccess, где в data сохранён список словарей содержащий инфо об участниках для их отображения: `id`, `name`, `avatar_url`, `last_time_online`
         """
-        query_chat = select(Chats.id, Chats.name, Chats.avatar_url, Chats.date_created).where(Chats.id==chat_id)
         query = (
             select(Users.id, Users.name, Users.avatar_url, Users.last_time_online)
             .join(Participants, Users.id == Participants.user_id)
             .where(Participants.chat_id == chat_id)
         )
 
-        chat_info = dict(self.session.execute(query_chat).mappings().one())
         participants = self.session.execute(query).mappings().all()
 
-        chat_info['participants'] = [user for user in participants]
-        return chat_info
+        return [dict(participant) for participant in participants]
