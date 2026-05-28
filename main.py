@@ -105,8 +105,10 @@ class Server():
         :param user_id: id пользователя, который отправил сообщение
         """
         try:
-            out = self.db.messages.add(message_type=message_type, text=text, chat_id=chat_id, user_id=user_id)
-
+            out = self.db.messages.add(message_type=message_type, text=text, chat_id=int(chat_id), user_id=user_id)
+            users_for_notice = [us["id"] for us in self.db.select_all_users_by_chat_id(chat_id=int(chat_id))["data"]]
+            for user in users_for_notice:
+                self.add_notice(user_id=user, text="Новое сообщение")
             # добавить уведомление пользователям
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
         except Exception as e:
@@ -165,6 +167,7 @@ class Server():
         await websocket.send(
             json.dumps({"id_task": id_task, "response": self.notice[user_id]}))
 
+
     async def get_chat_data(self, id_task: str, websocket, chat_id: str) -> None:
         """
         Метод обработки данных чата
@@ -193,7 +196,10 @@ class Server():
         """
         try:
             out = self.db.chats.add(type=type, name=name, avatar_url=avatar_url)
-
+            chat_id = out["data"]["id"]
+            users_for_notice = [us["id"] for us in self.db.select_all_users_by_chat_id(chat_id=int(chat_id))["data"]]
+            for user in users_for_notice:
+                self.add_notice(user_id=user, text="Вас добавили в чат")
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
         except Exception as e:
             print(f"Error: {e}")
