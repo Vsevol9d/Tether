@@ -174,7 +174,7 @@ class Server():
         :param chat_id: id чата
         """
         try:
-            out = self.db.select_chat_info(chat_id=int(chat_id))
+            out = self.db.select_chat_participants(chat_id=int(chat_id))
 
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
         except Exception as e:
