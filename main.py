@@ -66,6 +66,7 @@ class Server():
                 # out = добавление пользователя в БД, получить словарь или ошибку
             # out = db.users.exists("username", username) # здесь вызвать метода проверки возможности добавления пользователя с пааметрами name, username, lastname (они будут равны = ["Никита2", "Nikitka", "Соколов2"])
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
+            self.connected_clients[username] = websocket
         except Exception as e:
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": f"Error: {e}"}))
@@ -83,6 +84,9 @@ class Server():
             # проверка на свопадения пароля с паролем username out = db.users.exists("username", username)
 
             out = self.db.users.exists(username=username, password=password)
+            if(out["data"] == "True"):
+                out = self.db.select_user_by_username(username=username)
+
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
             self.connected_clients[username] = websocket
         except Exception as e:
