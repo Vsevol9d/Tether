@@ -160,7 +160,7 @@ class Client:
         task_manager - TaskManager()
         """
         self.temp_id = str(uuid.uuid4())  # временный id
-        self.user_id = ""  # @user_id
+        self.user_id = ""  # id
         self.task_manager = TaskManager()
         self.notifications = set()
 
@@ -179,6 +179,8 @@ class Client:
                 #
                 #здесь все запуски задач
                 #
+
+                #при авторизации и регистрации, сделать self.user_id = out["data"]["id"] (или что-то в этом роде)
                 await manager_task
             except Exception as e:
                 print(f"Error: {e}")
@@ -217,7 +219,7 @@ class Client:
 
         :param id_task: id задачи
         :param websocket: объект - соединение с пользователем
-        :param user_id: id пользователя
+        :param chat_id: id чата
         """
         await websocket.send(
             json.dumps({"action": "get_messages", "id_task": id_task, "params": [chat_id]})
@@ -254,7 +256,7 @@ class Client:
 
         :param id_task: id задачи
         :param websocket: объект - соединение с пользователем
-        :param user_id: id пользователя
+        :param id_user: id пользователя
         """
         await websocket.send(
             json.dumps({"action" : "get_notifications", "id_task": id_task, "params": [id_user]}))
