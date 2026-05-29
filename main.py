@@ -123,7 +123,8 @@ class Server():
         :param websocket: объект - соединение с пользователем
         """
         try:
-            out = self.db.select_all_chats_by_id_user(user_id=int(id_user))  # чаты из БД
+            #out = self.db.select_all_chats_by_id_user(user_id=int(id_user))  # чаты из БД
+            out = self.db.select_chats(user_id=int(id_user))
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
         except Exception as e:
             print(f"Error: {e}")
