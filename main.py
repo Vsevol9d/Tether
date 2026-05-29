@@ -84,7 +84,7 @@ class Server():
             # проверка на свопадения пароля с паролем username out = db.users.exists("username", username)
 
             out = self.db.users.exists(username=username, password=password)
-            if(out["data"] == "True"):
+            if out.get("data") :
                 out = self.db.select_user_by_username(username=username)
 
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
