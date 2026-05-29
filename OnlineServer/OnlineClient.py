@@ -275,7 +275,7 @@ class Client:
         :param chat_id: id чата
         """
         await websocket.send(
-            json.dumps({"action": "get_chat_data", "id_task": id_task, "params": [chat_id]}))
+            json.dumps({"action": "get_participants", "id_task": id_task, "params": [chat_id]}))
 
     async def create_chat(self, id_task: str, websocket, type: str, name: str, avatar_url: str)->None:
         """
