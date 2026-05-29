@@ -23,7 +23,7 @@ class Server():
             "get_chats": self.get_chats,
             "get_messages": self.get_messages,
             "get_notifications": self.give_notifications,
-            "get_chat_data" : self.get_chat_data,
+            "get_participants" : self.get_chat_data,
             "create_chat" : self.create_chat
         }
 
@@ -169,7 +169,7 @@ class Server():
             json.dumps({"id_task": id_task, "response": self.notice[user_id]}))
 
 
-    async def get_chat_data(self, id_task: str, websocket, chat_id: str) -> None:
+    async def get_participants(self, id_task: str, websocket, chat_id: str) -> None:
         """
         Метод обработки данных чата
 
