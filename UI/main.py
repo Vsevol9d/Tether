@@ -17,13 +17,10 @@ from UI.pages.adding_page import AddingPage
 from UI.pages.sign_up_page import SignUpPage
 from UI.element_views.chat_view import MessageView, ChatView, ChatInfoView
 from UI.element_views.selectable_chat_view import SelectableChatView
-from Database.api import Session, DataBase
+from server_api import ServerAPI
 
 # Обработчик ошибок со стороны UI
 from error_handler import ErrorHandler
-
-with Session() as session:
-    db = DataBase(session)
 
 # Настройка внешнего вида (можно вынести в initialize)
 ctk.set_appearance_mode("dark")  # "light", "dark", "system"
@@ -44,14 +41,13 @@ class App(ctk.CTk):
         # Центрирование окна на экране
         self.center_window()
 
+        self.server_api = None
+
         self.user = None
         self.available_chats = {}
         self.current_chat_view = None
         self.current_chat_info = None
-        self.is_authorized = False
-        self.user_info_loaded = False
-        self.addable_users_names = []
-        self.addable_users = []
+        self.chats_info_loaded = False
 
         # Инициализация классов страниц
         self.start_page = StartPage(self)
@@ -72,93 +68,83 @@ class App(ctk.CTk):
         y = (self.winfo_screenheight() // 2) - (height // 2)
         self.geometry(f'{width}x{height}+{x}+{y}')
 
-    async def _run_db_operation(self, operation, *args, **kwargs):
-        """Универсальный метод для выполнения синхронных операций БД в отдельном потоке."""
-        return await asyncio.to_thread(operation, *args, **kwargs)
+    async def switch_to_chatting_page(self):
+        """Переключение на страницу с чатами"""
+        if not self.chats_info_loaded:
+            response = await self.server_api.get_user_chats(str(self.user['id']))
 
-    async def switch_to_chatting_page(self) -> None:
-        if not self.user_info_loaded:
-            chats = await self._run_db_operation(db.select_all_chats_by_id_user, user_id=self.user['id'])
+            if response and response.get('isSuccess'):
+                chats = response.get('data', [])
 
-            if chats['isSuccess']:
-                # Создаем список задач для параллельного выполнения
-                tasks = []
-                for chat in chats['data']:
-                    tasks.append(self._process_chat_data(chat))
+                # Загружаем данные по каждому чату
+                for chat in chats:
+                    await self._process_chat_data(chat)
 
-                # Запускаем сбор данных по всем чатам одновременно
-                await asyncio.gather(*tasks)
+                # Отрисовка чатов
+                for chat_id, chat in self.available_chats.items():
+                    self.add_selectable_chat_view(
+                        chat_id=chat_id,
+                        avatar_url=chat.get('avatar_url'),
+                        name=chat.get('name'),
+                        last_message=chat.get('last_mes'),
+                        is_new=chat.get('is_new')
+                    )
 
-            # Отрисовка интерфейса (остается синхронной)
-            for chat_id, chat in self.available_chats.items():
-                self.add_selectable_chat_view(
-                    chat_id,
-                    DEFAULT_AVATAR_PATH,
-                    chat['name'],
-                    chat['last_message'],
-                    is_new=chat['is_new']
-                )
-
-        # Переключение страниц (UI операции обычно синхронны)
-        self.user_info_loaded = True
+        self.chats_info_loaded = True
         self.current_page.hide()
-        self.chatting_page.show()
-        self.current_page = self.chatting_page
+        if self.chatting_page:
+            self.chatting_page.show()
+            self.current_page = self.chatting_page
 
-    async def _process_chat_data(self, chat: dict) -> None:
-        """Вспомогательный метод для обработки одного чата."""
-        chat_id = chat['id']
+    async def _process_chat_data(self, chat: dict):
+        """Обработка данных чата"""
+        chat_id = chat.get('id')
+        participants = []
+        is_new = True
 
-        # Запускаем запросы к участникам и сообщениям параллельно для одного чата
-        participants_task = self._run_db_operation(db.select_all_users_by_chat_id, chat_id=chat_id)
-        messages_task = self._run_db_operation(db.select_all_messages_by_chat_id, chat_id=chat_id)
+        # Получаем последнее сообщение
+        last_mes = chat.get('last_mes')
+        last_user_name = chat.get('last_user_name')
 
-        participants_response, messages = await asyncio.gather(participants_task, messages_task)
+        if not last_mes:
+            last_mes = 'Начните общение'
 
-        participants_list = []
-        participants_names_list = []
-
-        # Обработка участников
-        if participants_response['isSuccess']:
-            for user in participants_response['data']:
-                participants_list.append(user)
-                name = user['name']
-                participants_names_list.append(name)
-
-                if user not in self.addable_users and user['id'] != self.user['id']:
-                    self.addable_users_names.append(name)
-                    self.addable_users.append(user)
+        if last_user_name:
+            last_message_full = last_user_name + ': ' + last_mes
         else:
-            ErrorHandler(self, participants_response['error'])
+            last_message_full = last_mes
 
-        # Обработка сообщений
-        if messages['isSuccess']:
-            messages_list = messages['data']
-            if len(messages_list) > 0:
-                last_message = messages_list[-1]['text']
-                is_new = False
-            else:
-                last_message = 'Начните общение'
-                is_new = True
-
-            self.available_chats[chat_id] = {
-                'type': chat['type'],
-                'name': chat['name'],
-                'last_message': last_message,
-                'participants_count': len(participants_list),
-                'is_new': is_new,
-                'participants': participants_list,
-                'participants_names': participants_names_list
-            }
+        if chat.get('avatar_url'):
+            avatar_url = chat.get('avatar_url')
         else:
-            ErrorHandler(self, messages['error'])
+            avatar_url = DEFAULT_AVATAR_PATH
+
+        # Получаем участников
+        participants_response = await self.server_api.get_chat_data(chat_id)
+
+        if participants_response and participants_response.get('isSuccess'):
+            participants = participants_response.get('data', []) # Информация об участниках чата (id, name, avatar_url, last_time_online)
+
+        self.available_chats[chat_id] = {
+            'id': chat_id,
+            'name': chat.get('name', 'Чат'),
+            'avatar_url': avatar_url,
+            'type': chat.get('type', 'group'),
+            'last_mes': last_message_full,
+            'last_user_name': last_user_name,
+            'is_new': is_new,
+            'participants': [participants],
+            'participants_names': [user['name'] for user in participants]
+        }
 
     def switch_to_sign_up_page(self) -> None:
+        """Метод для переключения на страницу авторизации"""
         self.current_page.hide()
         self.sign_up_page.show()
         self.current_page = self.sign_up_page
 
     def switch_to_adding_page(self) -> None:
+        """Метод для переключения на страницу для добавления чата"""
         self.adding_page = AddingPage(self, self.switch_to_chatting_page, self.on_chat_adding_submit,
                                       self.addable_users, self.addable_users_names)
         self.current_page.hide()
@@ -166,157 +152,110 @@ class App(ctk.CTk):
         self.current_page = self.adding_page
 
     def get_current_page(self) -> str:
+        """Метод для получения имени текущей страницы"""
         return self.current_page.name
 
     #################################################################################################
     # Методы обработчики добавления новых элементов UI
     #################################################################################################
 
-    # Метод для добавления чата
-    async def on_chat_adding_submit(self) -> None:
+    async def on_chat_adding_submit(self):
+        """Создание нового чата"""
         chat_type = self.adding_page.chat_type_choose_menu.get()
         chat_name = self.adding_page.chat_name_entry.get().strip()
-        avatar_url = self.adding_page.avatar_url_entry.get().strip()
+        avatar_url = self.adding_page.avatar_url_entry.get().strip() or DEFAULT_AVATAR_PATH
+        participants_data = self.adding_page.selected_users_data
+        participants_names = self.adding_page.selected_users_names
 
-        if not avatar_url:
-            avatar_url = DEFAULT_AVATAR_PATH
-
-        participants_list = self.adding_page.selected_users_data + [self.user]
-        participants_names_list = self.adding_page.selected_users_names + [self.user['name']]
-        participants_count = len(participants_list)
-
-        # Проверка на заполненность обязательных полей
-        if not chat_name or not self.adding_page.selected_users_data:
-            self.adding_page.error_callback('Проверьте заполненность полей!')
+        if not chat_name:
+            self.adding_page.error_callback('Введите название чата!')
             return
 
-        # Добавление чата в БД
-        chat_response = await self._run_db_operation(db.chats.add, type=chat_type, name=chat_name,
-                                                     avatar_url=avatar_url)
+        # Создаем чат
+        response = await self.server_api.create_chat(chat_type, chat_name, avatar_url)
 
-        if chat_response['isSuccess']:
-            chat_id = chat_response['data']['id']
+        if response and response.get('isSuccess'):
+            chat_id = response.get('data', {}).get('id')
 
-            # Локальное сохранение данных о новом чате
             self.available_chats[chat_id] = {
+                'id': chat_id,
                 'type': chat_type,
                 'name': chat_name,
                 'last_message': 'Начните общение!',
-                'participants_count': participants_count,
                 'is_new': True,
-                'participants': participants_list,
-                'participants_names': participants_names_list
+                'participants': participants_data,
+                'participants_names': participants_names
             }
 
-            # Отрисовка элемента чата в UI
             self.add_selectable_chat_view(chat_id, avatar_url, chat_name, 'Начните общение!', is_new=True)
-
             await self.switch_to_chatting_page()
         else:
-            # Если в ответе БД заложена ошибка, выводим её через обработчик
-            ErrorHandler(self, chat_response['error'])
+            error_msg = response.get('error', 'Ошибка создания чата') if response else 'Ошибка соединения'
+            self.adding_page.error_callback(error_msg)
 
     # Метод для отправки сообщения
-    async def send_message(self) -> None:
-        # Получаем текст и очищаем его от случайных пробелов по краям
+    async def send_message(self):
+        """Отправка сообщения"""
         text = self.current_chat_view.message_entry.get().strip()
-
         if not text:
             return
 
-        message_type = 'text'
         chat_id = self.current_chat_info['id']
-        is_new = self.current_chat_info['is_new']
         user_id = self.user['id']
 
-        # Очищаем поле ввода сразу
         self.current_chat_view.message_entry.delete(0, "end")
 
-        # Асинхронная отправка сообщения в базу данных
-        send_response = await self._run_db_operation(db.messages.add, type=message_type, text=text, chat_id=chat_id,
-                                                     user_id=user_id)
+        response = await self.server_api.send_message('text', text, str(chat_id), str(user_id))
 
-        if send_response['isSuccess']:
-            if is_new:
+        if response and response.get('isSuccess'):
+            if self.current_chat_info['is_new']:
                 self.current_chat_view.on_first_message_sending()
                 self.current_chat_info['is_new'] = False
-
-            # Отображаем новое сообщение в интерфейсе
             self.add_message_view('text', text, 'Вы')
         else:
-            # Если произошла ошибка, возвращаем текст назад в поле ввода и показываем ошибку
             self.current_chat_view.message_entry.insert(0, text)
-            ErrorHandler(self, send_response['error'])
+            error_msg = response.get('error', 'Ошибка отправки') if response else 'Ошибка соединения'
+            ErrorHandler(self, error_msg)
 
-    # Метод для открытия чата
-    async def open_chat(self, chat_id, is_new: bool) -> None:
-        """
-        Получаем информацию о чате из БД и передаём её
-
-        :param chat_id: ID открываемого чата
-        :param is_new: Новый ли чат или нет
-        """
-        # Если чат уже открыт, ничего не делаем
-        if self.current_chat_info is not None and chat_id == self.current_chat_info['id']:
+    async def open_chat(self, chat_id, is_new: bool):
+        """Открытие чата"""
+        if self.current_chat_info and chat_id == self.current_chat_info['id']:
             return
 
-        chat_type = self.available_chats[chat_id]['type']
-        chat_name = self.available_chats[chat_id]['name']
-        chat_participants_names = self.available_chats[chat_id]['participants_names']
+        chat_data = self.available_chats[chat_id]
 
-        if chat_type != 'private':
-            chat_participants_count = self.available_chats[chat_id]['participants_count']
-        else:
-            chat_participants_count = 2
+        # Получаем данные чата
+        chat_info_response = await self.server_api.get_chat_data(str(chat_id))
+
+        chat_name = chat_data['name']
+        chat_type = chat_data['type']
+
+        if chat_info_response and chat_info_response.get('isSuccess'):
+            chat_info = chat_info_response.get('data', {})
+            chat_name = chat_info.get('name', chat_name)
+            chat_type = chat_info.get('type', chat_type)
 
         self.current_chat_info = {
-            'id': chat_id, 'type': chat_type, 'name': chat_name,
-            'participants_names': chat_participants_names,
-            'participants_count': chat_participants_count, 'is_new': is_new
+            'id': chat_id,
+            'type': chat_type,
+            'name': chat_name,
+            'participants_names': chat_data.get('participants_names', []),
+            'participants_count': len(chat_data.get('participants', [])),
+            'is_new': is_new
         }
 
-        # Отображаем пустую страницу чата
-        self.add_chat_view(chat_type=chat_type, name=chat_name, participants_count=chat_participants_count,
-                           is_new=is_new)
+        self.add_chat_view(chat_type, chat_name, self.current_chat_info['participants_count'], is_new)
 
         if not is_new:
-            # Асинхронно получаем все сообщения чата
-            chat_messages = await self._run_db_operation(db.select_all_messages_by_chat_id, chat_id=chat_id)
+            # Загружаем сообщения
+            response = await self.server_api.get_messages(str(chat_id))
 
-            if chat_messages['isSuccess']:
-                messages_data = chat_messages['data']
-
-                # Собираем все уникальные ID отправителей, чтобы загрузить их за один раз
-                unique_sender_ids = {msg['user_id'] for msg in messages_data}
-
-                # Запускаем параллельный фоновый сбор данных обо всех авторах
-                sender_tasks = {uid: self._run_db_operation(db.select_by_id, id=uid) for uid in unique_sender_ids}
-                sender_results = await asyncio.gather(*sender_tasks.values())
-
-                # Создаем словарь {user_id: name} для быстрой подстановки имен
-                senders_cache = {}
-                for user_id, response in zip(sender_tasks.keys(), sender_results):
-                    if response['isSuccess']:
-                        senders_cache[user_id] = response['data']['name']
-                    else:
-                        senders_cache[user_id] = ''
-                        ErrorHandler(self, response['error'])
-
-                # Теперь быстро и без задержек отрисовываем сообщения из кэша
-                for message in messages_data:
-                    sender_id = message['user_id']
-                    content_type = message['type']
-                    content = message['text'] if content_type == 'text' else message['file_id']
-
-                    # Определяем имя отправителя
-                    if sender_id == self.user['id']:
-                        sender_name = 'Вы'
-                    else:
-                        sender_name = senders_cache.get(sender_id, '')
-
-                    self.add_message_view(content_type, content, sender_name)
-            else:
-                ErrorHandler(self, chat_messages['error'])
+            if response and response.get('isSuccess'):
+                messages = response.get('data', [])
+                for message in messages:
+                    sender_name = 'Вы' if message.get('user_id') == self.user['id'] else 'Пользователь'
+                    content = message.get('text', '')
+                    self.add_message_view('text', content, sender_name)
 
     #################################################################################################
     # Методы добавление UI
@@ -324,6 +263,7 @@ class App(ctk.CTk):
 
     # Добавление вида выбранного чата (тип чата, имя чата, количество участников)
     def add_chat_view(self, chat_type: str, name: str, participants_count: int, is_new: bool) -> None:
+        """Метод, отвечающий за добавление видимого чата с перепиской"""
         if self.current_chat_view is None:
             self.chatting_page.on_chat_selection()
 
@@ -339,6 +279,7 @@ class App(ctk.CTk):
     # Добавление вида чата на панели списка чатов
     def add_selectable_chat_view(self, chat_id: int, avatar_url: str, name: str, last_message: str,
                                  is_new=False) -> None:
+        """Метод, отвечающий за добавление видимого чата в списке чатов"""
         selectable_chat = SelectableChatView(self.chatting_page.chats_list_scrollable_frame, avatar_url, name,
                                              last_message)
         selectable_chat.bind("<Button-1>", command=async_handler(lambda event: self.open_chat(chat_id, is_new)))
@@ -346,10 +287,12 @@ class App(ctk.CTk):
 
     # Добавление вида сообщения
     def add_message_view(self, content_type: str, content: str, sender_name: str) -> None:
+        """Метод, отвечающий за добавление видимого сообщения в специальный контейнер в окне в видимым чатом"""
         message = MessageView(self.current_chat_view.messages_frame, content_type, content, sender_name)
         message.pack(side='top', anchor='se', pady=5, padx=5, expand=True)
 
     def see_chat_info(self, event) -> None:
+        """Метод, отвечающий за отображение информации по нажатии на шапку чата"""
         current_chat_info_window = ChatInfoView(self.chatting_page, self.current_chat_view,
                                                 self.current_chat_info['participants_names'])
         current_chat_info_window.focus()
@@ -358,93 +301,67 @@ class App(ctk.CTk):
     # Функции для авторизации
     #################################################################################################
 
-    async def register_user(self) -> None:
+    async def register_user(self):
+        """Регистрация через сервер"""
         name = self.sign_up_page.name_entry.get().strip()
         username = self.sign_up_page.username_entry.get().strip()
         password = self.sign_up_page.password_entry.get()
         password_confirm = self.sign_up_page.password_confirm_entry.get()
 
-        # Проверка на заполненность полей
         if not all([name, username, password, password_confirm]):
             self.sign_up_page.error_callback('Проверьте заполненность полей!')
             return
 
-        # Проверка совпадения паролей
         if password != password_confirm:
             self.sign_up_page.error_callback('Пароли не совпадают!')
             return
 
-        # Асинхронная проверка существования пользователя
-        user_exists = await self._run_db_operation(db.users.exists, username=username)
-        if user_exists:
-            self.sign_up_page.error_callback('Такое имя пользователя занято!')
-            return
+        # Прямой вызов - ответ содержит isSuccess, data, error
+        response = await self.server_api.register_user(name, username, password)
 
-        # Асинхронное добавление пользователя в БД
-        register_response = await self._run_db_operation(db.users.add, name=name, username=username, password=password)
-        if register_response['isSuccess']:
-            self.user = register_response['data']
-            self.is_authorized = True
-
-            # Инициализация страницы чатов
+        if response and response.get('isSuccess'):
+            self.user = response.get('data')
             self.chatting_page = ChattingPage(self, self.switch_to_adding_page, self.user)
-
             await self.switch_to_chatting_page()
         else:
-            ErrorHandler(self, register_response['error'])
+            error_msg = response.get('error', 'Ошибка регистрации') if response else 'Ошибка соединения'
+            self.sign_up_page.error_callback(error_msg)
 
-    async def login_user(self) -> None:
+    async def login_user(self):
+        """Вход через сервер"""
         username = self.sign_up_page.username_entry.get().strip()
         password = self.sign_up_page.password_entry.get()
 
-        # Проверка на заполненность полей
         if not all([username, password]):
             self.sign_up_page.error_callback('Проверьте заполненность полей!')
             return
 
-        # Асинхронная проверка существования пользователя с таким паролем
-        is_existing = await self._run_db_operation(db.users.exists, username=username, password=password)
-        if not is_existing:
-            self.sign_up_page.error_callback('Неправильный username или пароль')
-            return
+        response = await self.server_api.login_user(username, password)
 
-        # Асинхронное получение данных пользователя
-        login_response = await self._run_db_operation(db.select_user_by_username, username=username)
-        if login_response['isSuccess']:
-            self.user = login_response['data']
-            self.is_authorized = True
-
-            # Инициализация страницы чатов
+        if response and response.get('isSuccess'):
+            self.user = response.get('data')
             self.chatting_page = ChattingPage(self, self.switch_to_adding_page, self.user)
-            # Обязательно await для переключения страницы
             await self.switch_to_chatting_page()
         else:
-            ErrorHandler(self, login_response['error'])
+            error_msg = response.get('error', 'Неверный username или пароль') if response else 'Ошибка соединения'
+            self.sign_up_page.error_callback(error_msg)
 
     #################################################################################################
 
-    async def initialize(self) -> None:
-        """Асинхронная инициализация приложения."""
-        # Принудительно показываем окно
+    async def initialize(self):
+        """Инициализация с подключением к серверу"""
+        self.server_api = await ServerAPI().connect()
         self.deiconify()
         self.lift()
         self.focus_force()
-
         self.start_page.show()
-
         await asyncio.sleep(2.0)
-
         self.switch_to_sign_up_page()
 
     def run(self) -> None:
-        """Запуск главного цикла приложения."""
-        # Скрываем окно до полной инициализации
+        """Запуск приложения"""
         self.withdraw()
-
-        # Запускаем асинхронную инициализацию
         self.after_idle(async_handler(self.initialize))
-
-        # Запускаем асинхронный главный цикл
         async_mainloop(self)
 
 
