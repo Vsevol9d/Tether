@@ -267,7 +267,7 @@ class Client:
         """
         self.notifications.clear()
 
-    async def get_chat_data(self, id_task: str, websocket, chat_id: str)->None:
+    async def get_participants(self, id_task: str, websocket, chat_id: str)->None:
         """
         Запрос данных чата
         :param id_task: id задачи
