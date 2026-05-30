@@ -177,10 +177,10 @@ class Client:
                 reg = await self.task_manager.add_task(self.registration, str(uuid.uuid4()), websocket, name, username, password, "latsnnhfnjf")
 
                 #
-                #здесь все запуски задач
+                # здесь все запуски задач
                 #
 
-                #при авторизации и регистрации, сделать self.user_id = out["data"]["id"] (или что-то в этом роде)
+                # при авторизации и регистрации, сделать self.user_id = out["data"]["id"] (или что-то в этом роде)
                 await manager_task
             except Exception as e:
                 print(f"Error: {e}")
