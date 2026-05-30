@@ -23,7 +23,7 @@ class Server():
             "get_chats": self.get_chats,
             "get_messages": self.get_messages,
             "get_notifications": self.give_notifications,
-            "get_participants" : self.get_chat_data,
+            "get_participants" : self.get_participants,
             "create_chat" : self.create_chat
         }
 
