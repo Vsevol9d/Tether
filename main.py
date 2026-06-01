@@ -1,8 +1,64 @@
 import json
+import sys
+
 import websockets
 import asyncio
 from Database.api import Session, DataBase
 import os
+import logging
+import logging.config
+
+class ServerLogger():
+    def __init__(self):
+        LOG_CONFIG = {
+            "version": 1,
+            "formatters": {
+                "default": {
+                    "format": "[%(asctime)s] [%(levelname)s] %(name)s: %(message)s"
+                },
+                "input_response": {
+                    "format": "[%(asctime)s] [%(levelname)s] %(name)s: %(message)s, input: %(input)s, response: %(response)s"
+                }
+            },
+            "handlers": {
+                "file_handler": {
+                    "class": "logging.FileHandler",
+                    "level": "INFO",
+                    "formatter": "default",
+                    "filename": "server.log",
+                    "encoding": "utf-8"
+                },
+                "console": {
+                    "class": "logging.StreamHandler",
+                    "level": "DEBUG",
+                    "formatter": "input_response",
+                }
+            },
+            "loggers": {
+                "server": {
+                    "handlers": ["file_handler", "console"],
+                    "level": "DEBUG",
+                    "propagate": False,
+                }
+            }
+        }
+
+        logging.config.dictConfig(LOG_CONFIG)
+        self.logger = logging.getLogger("server")
+
+    def create_log(self, text, level="INFO", input=None, response=None):
+        match level:
+            case "DEBUG":
+                self.logger.debug(text, extra={"input": input, "response": response})
+            case "INFO":
+                self.logger.info(text, extra={"input": input, "response": response})
+            case "WARNING":
+                self.logger.warning(text, extra={"input": input, "response": response})
+            case "ERROR":
+                self.logger.error(text, extra={"input": input, "response": response})
+            case "CRITICAL":
+                self.logger.critical(text, extra={"input": input, "response": response})
+
 
 class Server():
     def __init__(self):
@@ -70,7 +126,7 @@ class Server():
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": f"Error: {e}"}))
 
-    async def auth(self, id_task: str, websocket, username: str, password: str) -> None:
+    async def auth(self, id_task: str, websocket, username: str, password: str):
         """
         Функция авторизации пользователя
 
@@ -88,6 +144,7 @@ class Server():
 
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
             self.connected_clients[username] = websocket
+            return out
         except Exception as e:
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": f"Fall"}))
