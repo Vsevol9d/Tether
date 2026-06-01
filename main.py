@@ -1,16 +1,28 @@
 import json
 import sys
+from typing import List
+from unittest import case
 
 import websockets
 import asyncio
 from Database.api import Session, DataBase
 import os
 import logging
-import logging.config
+import logging.config, logging.handlers
 
-class ServerLogger():
-    def __init__(self):
-        LOG_CONFIG = {
+class CustomWebSocketHandler(logging.Handler):
+    def __init__(self, websockets: List):
+        super().__init__()
+        self.websockets = websockets
+
+    def emit(self, record):
+        for websocket in self.websockets:
+            asyncio.create_task(websocket.send(f"[LOG] {self.format(record)}"))
+
+
+class LoggerServer():
+    def __init__(self, websockets):
+        self.LOG_CONFIG = {
             "version": 1,
             "formatters": {
                 "default": {
@@ -21,13 +33,6 @@ class ServerLogger():
                 }
             },
             "handlers": {
-                "file_handler": {
-                    "class": "logging.FileHandler",
-                    "level": "INFO",
-                    "formatter": "default",
-                    "filename": "server.log",
-                    "encoding": "utf-8"
-                },
                 "console": {
                     "class": "logging.StreamHandler",
                     "level": "DEBUG",
@@ -36,29 +41,35 @@ class ServerLogger():
             },
             "loggers": {
                 "server": {
-                    "handlers": ["file_handler", "console"],
+                    "handlers": ["console"],
                     "level": "DEBUG",
                     "propagate": False,
                 }
             }
         }
-
-        logging.config.dictConfig(LOG_CONFIG)
+        logging.config.dictConfig(self.LOG_CONFIG)
         self.logger = logging.getLogger("server")
+        if websockets:
+            ws_handler = CustomWebSocketHandler(websockets)
+            ws_handler.setLevel(logging.DEBUG)
+            formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] %(name)s: %(message)s, input: %(input)s, response: %(response)s")
+            ws_handler.setFormatter(formatter)
+            self.logger.addHandler(ws_handler)
 
-    def create_log(self, text, level="INFO", input=None, response=None):
-        match level:
-            case "DEBUG":
-                self.logger.debug(text, extra={"input": input, "response": response})
-            case "INFO":
-                self.logger.info(text, extra={"input": input, "response": response})
-            case "WARNING":
-                self.logger.warning(text, extra={"input": input, "response": response})
-            case "ERROR":
-                self.logger.error(text, extra={"input": input, "response": response})
-            case "CRITICAL":
-                self.logger.critical(text, extra={"input": input, "response": response})
+    def debug(self, message, **extra):
+        self.logger.debug(message, extra=extra)
 
+    def info(self, message, **extra):
+        self.logger.info(message, extra=extra)
+
+    def warning(self, message, **extra):
+        self.logger.warning(message, extra=extra)
+
+    def error(self, message, **extra):
+        self.logger.error(message, extra=extra)
+
+    def critical(self, message, **extra):
+        self.logger.critical(message, extra=extra)
 
 class Server():
     def __init__(self):
@@ -71,6 +82,7 @@ class Server():
         self.connected_clients = {}
         self.db = DataBase(Session())
         # self.clients = set()
+        self.admins_websockets = []
 
         self.action_handlers = {
             "registration": self.registration,
@@ -82,8 +94,22 @@ class Server():
             "get_participants" : self.get_participants,
             "create_chat" : self.create_chat
         }
-
+        self.loggerforServer = LoggerServer(websockets=self.admins_websockets)
         self.notice = {}  # user_id : notice[textNotice]
+
+    def send_log(self, message, level, input, response):
+        match level:
+            case "DEBUG":
+                self.loggerforServer.debug(message=message, input=input, response=response)
+            case "INFO":
+                self.loggerforServer.info(message=message, input=input, response=response)
+            case "WARNING":
+                self.loggerforServer.warning(message=message, input=input, response=response)
+            case "ERROR":
+                self.loggerforServer.error(message=message, input=input, response=response)
+            case "CRITICAL":
+                self.loggerforServer.critical(message=message, input=input, response=response)
+
 
     async def handler(self, websocket) -> None:
         """
