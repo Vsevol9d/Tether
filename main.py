@@ -150,12 +150,15 @@ class Server():
         self.send_log(message="Регистрируемся", level="DEBUG", input=f"{id_task}, {name}, {username}, {password}, {lastname}", response="Нема")
         try:
             out = self.db.users.exists(username=username)
+            user_id = None
             if out.get("isSuccess") and out.get("data"):
                 out = self.db.users.add(name=name, username=username, password=password, lastname=lastname)
+                user_id = out.get("data").get("id")
                 # out = добавление пользователя в БД, получить словарь или ошибку
             # out = db.users.exists("username", username) # здесь вызвать метода проверки возможности добавления пользователя с пааметрами name, username, lastname (они будут равны = ["Никита2", "Nikitka", "Соколов2"])
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
-            self.connected_clients[username] = websocket
+            if user_id:  # Проверяем наличие user_id
+                self.connected_clients[user_id] = websocket  # Сохраняем клиента по id
         except Exception as e:
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": f"Error: {e}"}))
