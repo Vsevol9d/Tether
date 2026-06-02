@@ -3,6 +3,9 @@ import asyncio
 import websockets
 import json
 
+import ssl
+
+
 url = "wss://tether-jj4v.onrender.com/ws"
 file_for_logs = 'logs.txt'
 class ClientForLogs():
@@ -10,6 +13,11 @@ class ClientForLogs():
         self.PASSWORD = "SuperSlognyiParol"
 
     async def connect(self):
+        """ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        , ssl=ssl_context"""
+        print("Подключаемся")
         async with websockets.connect(url) as websocket:
             print("Подключился")
             await websocket.send(json.dumps({"action": "get_chats", "id_task": "1", "params": [self.PASSWORD]}))
@@ -19,3 +27,6 @@ class ClientForLogs():
                 if "[LOG]" in message:
                     print(message)
 
+if __name__ == "__main__":
+    client = ClientForLogs()
+    asyncio.run(client.connect())

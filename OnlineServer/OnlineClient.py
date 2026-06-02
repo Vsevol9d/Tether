@@ -230,7 +230,7 @@ class Client:
         Запрос серверу на регистрацию
 
         :param id_task: id задачи
-        :param websocket: объект - соединение с пользователем
+        :param websocket: объект - соединение с     пользователем
         :param name: имя пользователя
         :param username: username пользователя(уникальное имя)
         :param password: пароль
