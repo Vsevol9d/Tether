@@ -95,7 +95,7 @@ class Server():
             "create_chat" : self.create_chat,
             "auth_for_log": self.auth_for_log
         }
-        self.loggerForServer = LoggerServer(websockets=self.admins_websockets)
+        self.loggerForServer = None
         self.PASSWORD_FOR_LOGS = "SuperSlognyiParol"
 
 
@@ -134,6 +134,7 @@ class Server():
     async def auth_for_log(self, id_task: str, websocket, password: str) -> None:
         if password == self.PASSWORD_FOR_LOGS:
             self.admins_websockets.append(websocket)
+        self.loggerForServer = LoggerServer(websockets=self.admins_websockets)
 
     async def registration(self, id_task: str, websocket, name: str, username: str, password: str, lastname: str = "") -> None:
         """
@@ -146,6 +147,7 @@ class Server():
         :param password: пароль
         """
         print("Регистрируемся")
+        self.send_log(message="Регистрируемся", level="DEBUG", input=f"{id_task}, {name}, {username}, {password}, {lastname}", response="Нема")
         try:
             out = self.db.users.exists(username=username)
             if out.get("isSuccess") and out.get("data"):
