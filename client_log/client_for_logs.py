@@ -23,10 +23,12 @@ class ClientForLogs():
             try:
                 async with websockets.connect(url) as websocket:
                     print("Подключился")
-                    await websocket.send(json.dumps({"action": "get_chats", "id_task": "1", "params": [self.PASSWORD]}))
+                    await websocket.send(json.dumps({"action": "auth_for_log", "id_task": "1", "params": [self.PASSWORD]}))
                     await asyncio.sleep(1)
                     async for message in websocket:
+
                         message = json.loads(message)
+                        print(message)
                         if "[LOG]" in message:
                             print(message)
 
