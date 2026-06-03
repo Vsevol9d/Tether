@@ -9,12 +9,12 @@ import logging
 import logging.config, logging.handlers
 
 class CustomWebSocketHandler(logging.Handler):
-    def __init__(self, ws):
+    def __init__(self, get_ws_func):
         super().__init__()
-        self.ws = ws
+        self.get_ws_func = get_ws_func
 
     def emit(self, record):
-        ws_list = self.ws()
+        ws_list = self.get_ws_func()
         for websocket in ws_list:
             try:
                 asyncio.create_task(self.safe_send(self.format(record), websocket))
