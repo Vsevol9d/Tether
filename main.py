@@ -104,6 +104,7 @@ class Server():
         return self.admins_websockets.copy()
 
 
+
     def send_log(self, message, level, inp, response):
         inp = self.del_private_data(inp)
         match level:
