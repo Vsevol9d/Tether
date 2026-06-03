@@ -156,6 +156,9 @@ class Server():
         if password == self.PASSWORD_FOR_LOGS:
             self.admins_websockets.append(websocket)
 
+        await asyncio.sleep(5)
+        self.send_log("Тестовый лог", level="DEBUG", inp=f"{id_task=}, {password=}", response="None")
+
 
     async def registration(self, id_task: str, websocket, name: str, username: str, password: str, lastname: str = "") -> None:
         """
