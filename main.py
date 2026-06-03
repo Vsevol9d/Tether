@@ -11,10 +11,10 @@ import logging.config, logging.handlers
 class CustomWebSocketHandler(logging.Handler):
     def __init__(self, ws):
         super().__init__()
-        self.ws = ws()
+        self.ws = ws
 
     def emit(self, record):
-        ws_list = self.ws
+        ws_list = self.ws()
         for websocket in ws_list:
             try:
                 asyncio.create_task(self.safe_send(self.format(record), websocket))
@@ -25,7 +25,7 @@ class CustomWebSocketHandler(logging.Handler):
             await websocket.send(f"[LOG] {message}")
 
 class LoggerServer():
-    def __init__(self, ws):
+    def __init__(self, get_ws_func):
         self.LOG_CONFIG = {
             "version": 1,
             "formatters": {
@@ -54,7 +54,7 @@ class LoggerServer():
         logging.config.dictConfig(self.LOG_CONFIG)
         self.logger = logging.getLogger("server")
         if websockets:
-            ws_handler = CustomWebSocketHandler(ws)
+            ws_handler = CustomWebSocketHandler(get_ws_func)
             ws_handler.setLevel(logging.DEBUG)
             formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] %(name)s: %(message)s, input: %(input)s, response: %(response)s")
             ws_handler.setFormatter(formatter)
