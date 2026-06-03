@@ -119,7 +119,11 @@ class Server():
 
     def del_private_data(self, data: str) -> str:
         if isinstance(data, str) and "password" in data.lower():
-            data = data.replace("password", "[PRIVATE DATA REMOVED]")
+            list_data = data.split(",")
+            for i in range(len(list_data)):
+                if list_data[i] == "password":
+                    data = data.replace(list_data[i+1], "[PRIVATE DATA WAS REMOVED]")
+
         return data
 
     async def handler(self, websocket) -> None:
@@ -162,9 +166,10 @@ class Server():
         :param name: имя пользователя
         :param username: username пользователя(уникальное имя)
         :param password: пароль
+        :param lastname: фамилия
         """
         print("Регистрируемся")
-        self.send_log(message="Регистрируемся", level="DEBUG", inp=f"{id_task=}, {name=},user {username=}, {password=}, {lastname=}", response="Нема")
+        self.send_log(message="Регистрируемся", level="DEBUG", inp=f"{id_task=}, {name=}, {username=}, {password=}, {lastname=}", response="Нема")
         try:
             out = self.db.users.exists(username=username)
             user_id = None
@@ -290,7 +295,7 @@ class Server():
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
 
-    async def create_chat(self, id_task: str, websocket, type: str, name: str, avatar_url: str) -> None:
+    async def create_chat(self, id_task: str, websocket, type: str, name: str, avatar_url: str, users_ids: list[str]) -> None:
         """
         Создание чата
 
@@ -299,14 +304,22 @@ class Server():
         :param type: тип чата
         :param name: имя чата
         :param avatar_url: ссылка на изображение автара чата
+        :param users_ids: список id пользоовтаелей чата
         """
         try:
             out = self.db.chats.add(type=type, name=name, avatar_url=avatar_url)
             chat_id = out["data"]["id"]
             users_for_notice = [us.get("id") for us in self.db.select_all_users_by_chat_id(chat_id=int(chat_id))["data"]]
-            for user in users_for_notice:
-                if user in self.connected_clients.keys():
-                    await self.give_notifications(id_task="notification", websocket=self.connected_clients[user], text="You was added in chat")
+            try:
+                for uid in users_ids:
+                    if self.connected_clients.get(uid) != websocket:
+                        self.db.participants.add(user_id=int(uid), chat_id=int(chat_id), role="Участник")
+
+                for user in users_for_notice:
+                    if user in self.connected_clients.keys():
+                        await self.give_notifications(id_task="notification", websocket=self.connected_clients[user], text="You was added in chat")
+            except Exception as e:
+                await websocket.send(json.dumps({"id_task": id_task, "response": f"Не удалось создать чат, Error : {e}"}))
         except Exception as e:
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
