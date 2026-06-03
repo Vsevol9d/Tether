@@ -19,14 +19,20 @@ class ClientForLogs():
         ssl_context.verify_mode = ssl.CERT_NONE
         , ssl=ssl_context"""
         print("Подключаемся")
-        async with websockets.connect(url) as websocket:
-            print("Подключился")
-            await websocket.send(json.dumps({"action": "get_chats", "id_task": "1", "params": [self.PASSWORD]}))
-            await asyncio.sleep(1)
-            async for message in websocket:
-                message = json.loads(message)
-                if "[LOG]" in message:
-                    print(message)
+        for i in range(10):
+            try:
+                async with websockets.connect(url) as websocket:
+                    print("Подключился")
+                    await websocket.send(json.dumps({"action": "get_chats", "id_task": "1", "params": [self.PASSWORD]}))
+                    await asyncio.sleep(1)
+                    async for message in websocket:
+                        message = json.loads(message)
+                        if "[LOG]" in message:
+                            print(message)
+
+                break
+            except Exception as e:
+                print(f"Error: {e}, пробуем еще раз")
 
 if __name__ == "__main__":
     client = ClientForLogs()
