@@ -11,7 +11,7 @@ import logging.config, logging.handlers
 class CustomWebSocketHandler(logging.Handler):
     def __init__(self, ws):
         super().__init__()
-        self.ws = ws
+        self.ws = ws()
 
     def emit(self, record):
         ws_list = self.ws
