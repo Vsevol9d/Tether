@@ -11,7 +11,7 @@ import logging.config, logging.handlers
 class CustomWebSocketHandler(logging.Handler):
     def __init__(self, ws):
         super().__init__()
-        self.websockets = ws
+        self.ws = ws
 
     def emit(self, record):
         ws_list = self.ws
@@ -102,6 +102,7 @@ class Server():
         self.PASSWORD_FOR_LOGS = "SuperSlognyiParol"
     def get_admins_websockets(self) -> list:
         return self.admins_websockets.copy()
+
 
     def send_log(self, message, level, inp, response):
         inp = self.del_private_data(inp)
