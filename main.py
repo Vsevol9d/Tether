@@ -14,7 +14,7 @@ class CustomWebSocketHandler(logging.Handler):
         self.get_ws_func = get_ws_func
 
     def emit(self, record):
-        ws_list = self.get_ws_func()
+        ws_list = self.get_ws_func()()
         for websocket in ws_list:
             try:
                 asyncio.create_task(self.safe_send(self.format(record), websocket))
@@ -98,7 +98,7 @@ class Server():
             "create_chat" : self.create_chat,
             "auth_for_log": self.auth_for_log
         }
-        self.loggerForServer = LoggerServer(ws=lambda: self.get_admins_websockets)
+        self.loggerForServer = LoggerServer(get_ws_func=self.get_admins_websockets)
         self.PASSWORD_FOR_LOGS = "SuperSlognyiParol"
     def get_admins_websockets(self) -> list:
         return self.admins_websockets.copy()
@@ -239,7 +239,7 @@ class Server():
             for user in users_for_notice:
                 if user == user_id: continue
                 if user in self.connected_clients.keys():
-                    await self.give_notifications(id_task="notification", websocket=self.connected_clients[user], user_id=user, text="New message")
+                    await self.give_notifications(id_task="notification", websocket=self.connected_clients[user], text="New message")
             # добавить уведомление пользователям
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
         except Exception as e:
