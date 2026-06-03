@@ -9,12 +9,12 @@ import logging
 import logging.config, logging.handlers
 
 class CustomWebSocketHandler(logging.Handler):
-    def __init__(self, websockets):
+    def __init__(self, ws):
         super().__init__()
-        self.websockets = websockets
+        self.websockets = ws
 
     def emit(self, record):
-        ws_list = self.websockets
+        ws_list = self.ws
         for websocket in ws_list:
             try:
                 asyncio.create_task(self.safe_send(self.format(record), websocket))
@@ -25,7 +25,7 @@ class CustomWebSocketHandler(logging.Handler):
             await websocket.send(f"[LOG] {message}")
 
 class LoggerServer():
-    def __init__(self, websockets):
+    def __init__(self, ws):
         self.LOG_CONFIG = {
             "version": 1,
             "formatters": {
@@ -54,7 +54,7 @@ class LoggerServer():
         logging.config.dictConfig(self.LOG_CONFIG)
         self.logger = logging.getLogger("server")
         if websockets:
-            ws_handler = CustomWebSocketHandler(websockets)
+            ws_handler = CustomWebSocketHandler(ws)
             ws_handler.setLevel(logging.DEBUG)
             formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] %(name)s: %(message)s, input: %(input)s, response: %(response)s")
             ws_handler.setFormatter(formatter)
@@ -98,7 +98,7 @@ class Server():
             "create_chat" : self.create_chat,
             "auth_for_log": self.auth_for_log
         }
-        self.loggerForServer = LoggerServer(websockets=lambda: self.get_admins_websockets)
+        self.loggerForServer = LoggerServer(ws=lambda: self.get_admins_websockets)
         self.PASSWORD_FOR_LOGS = "SuperSlognyiParol"
     def get_admins_websockets(self) -> list:
         return self.admins_websockets.copy()
