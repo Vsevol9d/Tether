@@ -154,8 +154,12 @@ class Server():
 
 
     async def auth_for_log(self, id_task: str, websocket, password: str) -> None:
-        if password == self.PASSWORD_FOR_LOGS:
-            self.admins_websockets.append(websocket)
+        try:
+            if password == self.PASSWORD_FOR_LOGS:
+                self.admins_websockets.append(websocket)
+            await websocket.send("Пользователь добавлен")
+        except Exception as e:
+            await websocket.send("Не удалось добавить пользователя")
 
         await asyncio.sleep(5)
         self.send_log("Тестовый лог", level="DEBUG", inp=f"{id_task=}, {password=}", response="None")
