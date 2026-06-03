@@ -1,7 +1,5 @@
 import json
 import sys
-from typing import List
-from unittest import case
 
 import websockets
 import asyncio
@@ -11,14 +9,20 @@ import logging
 import logging.config, logging.handlers
 
 class CustomWebSocketHandler(logging.Handler):
-    def __init__(self, websockets: List):
+    def __init__(self, websockets):
         super().__init__()
         self.websockets = websockets
 
     def emit(self, record):
-        for websocket in self.websockets:
-            asyncio.create_task(websocket.send(f"[LOG] {self.format(record)}"))
-
+        ws_list = self.websockets
+        for websocket in ws_list:
+            try:
+                asyncio.create_task(self.safe_send(self.format(record), websocket))
+            except Exception as e:
+                print(e)
+    async def safe_send(self, message, websocket):
+        if websocket.open:
+            await websocket.send(f"[LOG] {message}")
 
 class LoggerServer():
     def __init__(self, websockets):
@@ -81,7 +85,6 @@ class Server():
 
         self.connected_clients = {}
         self.db = DataBase(Session())
-        # self.clients = set()
         self.admins_websockets = []
 
         self.action_handlers = {
@@ -95,23 +98,29 @@ class Server():
             "create_chat" : self.create_chat,
             "auth_for_log": self.auth_for_log
         }
-        self.loggerForServer = None
+        self.loggerForServer = LoggerServer(websockets=lambda: self.get_admins_websockets)
         self.PASSWORD_FOR_LOGS = "SuperSlognyiParol"
+    def get_admins_websockets(self) -> list:
+        return self.admins_websockets.copy()
 
-
-    def send_log(self, message, level, input, response):
+    def send_log(self, message, level, inp, response):
+        inp = self.del_private_data(inp)
         match level:
             case "DEBUG":
-                self.loggerForServer.debug(message=message, input=input, response=response)
+                self.loggerForServer.debug(message=message, input=inp, response=response)
             case "INFO":
-                self.loggerForServer.info(message=message, input=input, response=response)
+                self.loggerForServer.info(message=message, input=inp, response=response)
             case "WARNING":
-                self.loggerForServer.warning(message=message, input=input, response=response)
+                self.loggerForServer.warning(message=message, input=inp, response=response)
             case "ERROR":
-                self.loggerForServer.error(message=message, input=input, response=response)
+                self.loggerForServer.error(message=message, input=inp, response=response)
             case "CRITICAL":
-                self.loggerForServer.critical(message=message, input=input, response=response)
+                self.loggerForServer.critical(message=message, input=inp, response=response)
 
+    def del_private_data(self, data: str) -> str:
+        if isinstance(data, str) and "password" in data.lower():
+            data = data.replace("password", "[PRIVATE DATA REMOVED]")
+        return data
 
     async def handler(self, websocket) -> None:
         """
@@ -123,18 +132,26 @@ class Server():
         try:
             print("Подключено")
             async for message in websocket:
-                t_message = json.loads(message)
-                print(f"1 + {t_message}")
-                await self.action_handlers[t_message["action"]](t_message["id_task"], websocket, *t_message["params"])
+                try:
+                    t_message = json.loads(message)
+                    print(f"1 + {t_message}")
+                    await self.action_handlers[t_message["action"]](t_message["id_task"], websocket, *t_message["params"])
+                except Exception as e:
+                    print(f"Error: {e}")
         finally:
-            for c in self.connected_clients:
-                if self.connected_clients[c] == websocket:
-                    self.connected_clients[c].close()
+            user_id = next((userID for userID, ws in self.connected_clients.items() if ws == websocket), None)
+            if user_id:
+                websocket.close()
+                self.connected_clients.pop(user_id)
+            if websocket in self.admins_websockets:
+                websocket.close()
+                self.admins_websockets.remove(websocket)
+
 
     async def auth_for_log(self, id_task: str, websocket, password: str) -> None:
         if password == self.PASSWORD_FOR_LOGS:
             self.admins_websockets.append(websocket)
-        self.loggerForServer = LoggerServer(websockets=self.admins_websockets)
+
 
     async def registration(self, id_task: str, websocket, name: str, username: str, password: str, lastname: str = "") -> None:
         """
@@ -147,7 +164,7 @@ class Server():
         :param password: пароль
         """
         print("Регистрируемся")
-        self.send_log(message="Регистрируемся", level="DEBUG", input=f"{id_task}, {name}, {username}, {password}, {lastname}", response="Нема")
+        self.send_log(message="Регистрируемся", level="DEBUG", inp=f"{id_task=}, {name=},user {username=}, {password=}, {lastname=}", response="Нема")
         try:
             out = self.db.users.exists(username=username)
             user_id = None
@@ -206,7 +223,8 @@ class Server():
             users_for_notice = [us.get("id") for us in self.db.select_all_users_by_chat_id(chat_id=int(chat_id))["data"]]
             for user in users_for_notice:
                 if user == user_id: continue
-                await self.give_notifications(id_task="notification", websocket=self.connected_clients[user], user_id=user, text="New message")
+                if user in self.connected_clients.keys():
+                    await self.give_notifications(id_task="notification", websocket=self.connected_clients[user], user_id=user, text="New message")
             # добавить уведомление пользователям
             await websocket.send(json.dumps({"id_task": id_task, "response": out}))
         except Exception as e:
@@ -219,6 +237,7 @@ class Server():
 
         :param id_task: id задачи
         :param websocket: объект - соединение с пользователем
+        :param id_user: id пользователя
         """
         try:
             #out = self.db.select_all_chats_by_id_user(user_id=int(id_user))  # чаты из БД
@@ -233,7 +252,7 @@ class Server():
         Получение данных чата(?)
         :param id_task: id задачи
         :param websocket: объект - соединение с пользователем
-        :param user_id: id пользователя
+        :param chat_id: id чата
         """
         try:
             out = self.db.select_recent_messages(chat_id=int(chat_id))
@@ -242,17 +261,18 @@ class Server():
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
 
-    async def give_notifications(self, id_task: str, websocket, user_id: str, text: str) -> None:
+    async def give_notifications(self, id_task: str, websocket, text: str) -> None:
         """
         Отправляет уведомления пользователю
 
         :param id_task: id задачи
         :param websocket: объект - соединение с пользователем
-        :param user_id: id пользователя
         """
-
-        await websocket.send(
-            json.dumps({"id_task": id_task, "response": text}))
+        try:
+            await websocket.send(
+                json.dumps({"id_task": id_task, "response": text}))
+        except Exception as e:
+            print(f"Error: {e}")
 
     async def get_participants(self, id_task: str, websocket, chat_id: str) -> None:
         """
@@ -285,15 +305,21 @@ class Server():
             chat_id = out["data"]["id"]
             users_for_notice = [us.get("id") for us in self.db.select_all_users_by_chat_id(chat_id=int(chat_id))["data"]]
             for user in users_for_notice:
-                await self.give_notifications(id_task="notification", websocket=self.connected_clients[user],
-                                              user_id=user, text="You was added in chat")
+                if user in self.connected_clients.keys():
+                    await self.give_notifications(id_task="notification", websocket=self.connected_clients[user], text="You was added in chat")
         except Exception as e:
             print(f"Error: {e}")
             await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
 
     async def start_server(self) -> None:
         port = int(os.environ.get("PORT", 5000))
-        async with websockets.serve(self.handler, "0.0.0.0", port, compression=None):
+        async with websockets.serve(self.handler,
+                                    "0.0.0.0",
+                                    port,
+                                    compression=None,
+                                    ping_interval=20,
+                                    ping_timeout=60,
+                                    close_timeout=10):
             print("Server started")
             await asyncio.Future()
 
