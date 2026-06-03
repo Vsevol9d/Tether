@@ -26,11 +26,14 @@ class ClientForLogs():
                     await websocket.send(json.dumps({"action": "auth_for_log", "id_task": "1", "params": [self.PASSWORD]}))
                     await asyncio.sleep(1)
                     async for message in websocket:
-
-                        message = json.loads(message)
-                        print(message)
-                        if "[LOG]" in message:
+                        try:
+                            message = json.loads(message)
+                        except json.decoder.JSONDecodeError:
+                            pass
+                        finally:
                             print(message)
+                            if "[LOG]" in message:
+                                print(message)
 
                 break
             except Exception as e:

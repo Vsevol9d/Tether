@@ -162,6 +162,7 @@ class Server():
             await websocket.send("Не удалось добавить пользователя")
 
         await asyncio.sleep(5)
+        await websocket.send("Отправили лог")
         self.send_log("Тестовый лог", level="DEBUG", inp=f"{id_task=}, {password=}", response="None")
 
 
