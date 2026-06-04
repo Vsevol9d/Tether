@@ -24,14 +24,10 @@ class ClientForLogs():
                 async with websockets.connect(url, open_timeout=10) as websocket:
                     print("Подключился")
                     await websocket.send(json.dumps({"action": "auth_for_log", "id_task": "1", "params": [self.PASSWORD]}))
+                    await asyncio.sleep(1)
+                    await websocket.send(json.dumps({"action": "auth_for_log", "id_task": "1", "params": [self.PASSWORD]}))
                     async for message in websocket:
-                        try:
-                            message = json.loads(message)
-                            print(message)
-                        except json.decoder.JSONDecodeError:
-                            pass
-                        finally:
-                            print(message)
+                        print(message)
 
 
                 break
