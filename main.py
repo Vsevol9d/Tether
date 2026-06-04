@@ -122,7 +122,7 @@ class Server():
         inp = self.del_private_data(inp)
         match level:
             case "DEBUG":
-                self.loggerForServer.debug(message=message, input=inp, response=response)
+                self.loggerForServer.debug(message=message)
             case "INFO":
                 self.loggerForServer.info(message=message, input=inp, response=response)
             case "WARNING":
@@ -178,7 +178,7 @@ class Server():
         await asyncio.sleep(5)
         await websocket.send("Отправили лог" + str(websocket))
 
-        self.send_log("Тестовый лог", level="DEBUG", inp=f"{id_task=}, {password=}", response="None")
+        self.send_log("Тестовый лог", level="DEBUG")
         await websocket.send(f"Лог отправлен {len(self.admins_websockets)} + {self.admins_websockets[0]}")
 
 
