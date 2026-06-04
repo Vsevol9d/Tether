@@ -27,14 +27,12 @@ class ClientForLogs():
                     async for message in websocket:
                         try:
                             message = json.loads(message)
-                            if "[LOG]" in message:
-                                print(message)
+                            print(message)
                         except json.decoder.JSONDecodeError:
                             pass
                         finally:
                             print(message)
-                            if "[LOG]" in message:
-                                print(message)
+
 
                 break
             except Exception as e:

@@ -8,13 +8,14 @@ import os
 import logging
 import logging.config, logging.handlers
 
+ws_adm = None
 class CustomWebSocketHandler(logging.Handler):
     def __init__(self, get_ws_func):
         super().__init__()
         self.get_ws_func = get_ws_func
 
     def emit(self, record):
-        ws_list = self.get_ws_func()()
+        ws_list = self.get_ws_func()
         for websocket in ws_list:
             try:
                 asyncio.create_task(self.safe_send(self.format(record), websocket))
@@ -164,6 +165,7 @@ class Server():
 
         await asyncio.sleep(5)
         await websocket.send("Отправили лог" + str(websocket))
+
         self.send_log("Тестовый лог", level="DEBUG", inp=f"{id_task=}, {password=}", response="None")
 
 
