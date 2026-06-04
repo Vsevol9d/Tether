@@ -128,6 +128,7 @@ class Server():
                     print(f"1 + {t_message}")
                     await self.action_handlers[t_message["action"]](t_message["id_task"], websocket, *t_message["params"])
                 except Exception as e:
+                    await self.loggerServer.send_log(message=f"Ошибка: {e}", level="ERROR")
                     print(f"Error: {e}")
         finally:
             user_id = next((userID for userID, ws in self.connected_clients.items() if ws == websocket), None)
