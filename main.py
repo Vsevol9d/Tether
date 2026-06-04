@@ -102,7 +102,8 @@ class Server():
             "get_notifications": self.give_notifications,
             "get_participants" : self.get_participants,
             "create_chat" : self.create_chat,
-            "auth_for_log": self.auth_for_log
+            "auth_for_log": self.auth_for_log,
+            "test_method" : self.test_method
         }
         self.PASSWORD_FOR_LOGS = "SuperSlognyiParol"
         self.loggerServer = LoggerServer(get_ws_func=self.get_admins_websockets)
@@ -238,6 +239,7 @@ class Server():
             await websocket.send(json.dumps({"id_task": id_task, "response": f"Fall: {e}"}))
             output = json.dumps({"id_task": id_task, "response": f"Fall {e}"})
             return output
+
     @LoggerServer.auto_log()
     async def test_method(self, id_task: str, websocket, arg):
         await self.loggerServer.send_log(message="Тестовый лог", level="DEBUG", inp=f"{arg}")
