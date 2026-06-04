@@ -10,24 +10,19 @@ import logging.config, logging.handlers
 
 
 class CustomWebSocketHandler(logging.Handler):
-    def __init__(self, get_ws_func):
+    def __init__(self, get_ws_func, loop=None):
         super().__init__()
         self.get_ws_func = get_ws_func
         self.bg_tasks = set()
+        self.loop = loop or asyncio.get_event_loop()
 
     def emit(self, record):
         ws_list = self.get_ws_func()
         if not ws_list:
             return
         formatted = self.format(record)
-        loop = asyncio.get_event_loop()
         for websocket in ws_list:
-            try:
-                task = asyncio.create_task(self.safe_send(formatted, websocket))
-                self.bg_tasks.add(task)
-                task.add_done_callback(self.bg_tasks.discard)
-            except RuntimeError:
-                asyncio.run_coroutine_threadsafe(self.safe_send(formatted, websocket), loop)
+            asyncio.run_coroutine_threadsafe(self.safe_send(formatted, websocket), loop=self.loop)
     async def safe_send(self, message, websocket):
         if websocket.open:
             await websocket.send(f"[LOG] {message}")
@@ -35,7 +30,7 @@ class CustomWebSocketHandler(logging.Handler):
 
 
 class LoggerServer():
-    def __init__(self, get_ws_func):
+    def __init__(self, get_ws_func, loop):
         self.LOG_CONFIG = {
             "version": 1,
             "formatters": {
@@ -66,7 +61,7 @@ class LoggerServer():
         logging.config.dictConfig(self.LOG_CONFIG)
         self.logger = logging.getLogger("server")
         if websockets:
-            ws_handler = CustomWebSocketHandler(get_ws_func)
+            ws_handler = CustomWebSocketHandler(get_ws_func, loop=loop)
             ws_handler.setLevel(logging.DEBUG)
             #"[%(asctime)s] [%(levelname)s] %(name)s: %(message)s, input: %(input)s, response: %(response)s", defaults={"input": "", "response": ""}
             formatter = logging.Formatter("%(name)s: %(message)s")
@@ -95,7 +90,7 @@ class Server():
         action_handlers - типы запросов от клиентов и вызов в зависимости от этого функцию
         notice - словарь {user_id : список сообщений-уведомлений}
         """
-
+        self.loggerForServer = None
         self.connected_clients = {}
         self.db = DataBase(Session())
         self.admins_websockets = []
@@ -111,7 +106,6 @@ class Server():
             "create_chat" : self.create_chat,
             "auth_for_log": self.auth_for_log
         }
-        self.loggerForServer = LoggerServer(get_ws_func=self.get_admins_websockets)
         self.PASSWORD_FOR_LOGS = "SuperSlognyiParol"
     def get_admins_websockets(self) -> list:
         return self.admins_websockets.copy()
@@ -350,6 +344,12 @@ class Server():
             await websocket.send(json.dumps({"id_task": id_task, "response": "Fall"}))
 
     async def start_server(self) -> None:
+        self.loop = asyncio.get_event_loop()
+
+        self.loggerForServer = LoggerServer(
+            get_ws_func=self.get_admins_websockets,
+            loop=self.loop
+        )
         port = int(os.environ.get("PORT", 5000))
         async with websockets.serve(self.handler,
                                     "0.0.0.0",
