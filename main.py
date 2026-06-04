@@ -34,6 +34,7 @@ class LoggerServer:
 
     async def send_log(self, message, level="DEBUG", duration="?", inp="", response="") -> None:
         ws_list = self.get_ws_func()
+
         if ws_list:
             for ws in ws_list:
                 if ws.open():
@@ -141,7 +142,8 @@ class Server():
         try:
             if password == self.PASSWORD_FOR_LOGS:
                 self.admins_websockets.append(websocket)
-            await websocket.send("Пользователь добавлен")
+                await websocket.send("Пользователь добавлен")
+
         except Exception as e:
             await websocket.send("Не удалось добавить пользователя")
 
@@ -242,6 +244,7 @@ class Server():
 
     @LoggerServer.auto_log()
     async def test_method(self, id_task: str, websocket, arg):
+        await websocket.send(json.dumps({"id_task": id_task, "response": arg}))
         await self.loggerServer.send_log(message="Тестовый лог", level="DEBUG", inp=f"{arg}")
         await websocket.send("Лог отправлен")
         return {"response" : "OK"}
