@@ -13,17 +13,26 @@ class CustomWebSocketHandler(logging.Handler):
     def __init__(self, get_ws_func):
         super().__init__()
         self.get_ws_func = get_ws_func
+        self.bg_tasks = set()
 
     def emit(self, record):
         ws_list = self.get_ws_func()
+        if not ws_list:
+            return
+        formatted = self.format(record)
+        loop = asyncio.get_event_loop()
         for websocket in ws_list:
             try:
-                asyncio.create_task(self.safe_send(self.format(record), websocket))
-            except Exception as e:
-                asyncio.create_task(websocket.send("ERROR IN EMIT"))
+                task = asyncio.create_task(self.safe_send(formatted, websocket))
+                self.bg_tasks.add(task)
+                task.add_done_callback(self.bg_tasks.discard)
+            except RuntimeError:
+                asyncio.run_coroutine_threadsafe(self.safe_send(formatted, websocket), loop)
     async def safe_send(self, message, websocket):
         if websocket.open:
             await websocket.send(f"[LOG] {message}")
+
+
 
 class LoggerServer():
     def __init__(self, get_ws_func):
@@ -59,7 +68,8 @@ class LoggerServer():
         if websockets:
             ws_handler = CustomWebSocketHandler(get_ws_func)
             ws_handler.setLevel(logging.DEBUG)
-            formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] %(name)s: %(message)s, input: %(input)s, response: %(response)s", defaults={"input": "", "response": ""})
+            #"[%(asctime)s] [%(levelname)s] %(name)s: %(message)s, input: %(input)s, response: %(response)s", defaults={"input": "", "response": ""}
+            formatter = logging.Formatter("%(name)s: %(message)s")
             ws_handler.setFormatter(formatter)
             self.logger.addHandler(ws_handler)
 
