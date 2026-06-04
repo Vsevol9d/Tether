@@ -2,6 +2,8 @@ import functools
 import json
 import time
 import inspect
+from urllib import response
+
 import websockets
 import asyncio
 from Database.api import Session, DataBase
@@ -53,6 +55,7 @@ class LoggerServer:
                 bound_args = sig.bind(*args, **kwargs)
                 bound_args.apply_defaults()
                 inp = ""
+                end = 0.0
                 for k, v in bound_args.arguments.items():
                     if k != 'self' and k != 'websocket':  # Исключаем служебные параметры
                         inp += f"{k}={v}, "
@@ -64,6 +67,7 @@ class LoggerServer:
                     return res
                     #проверку на ошибку отслеживаемую
                 except Exception as e:
+                    end = time.time()
                     res = f"Непредвиденная ошибка: {e}"
                     lvl = "ERROR"
                     raise
@@ -234,7 +238,11 @@ class Server():
             await websocket.send(json.dumps({"id_task": id_task, "response": f"Fall: {e}"}))
             output = json.dumps({"id_task": id_task, "response": f"Fall {e}"})
             return output
-
+    @LoggerServer.auto_log()
+    async def test_method(self, id_task: str, websocket, arg):
+        await self.loggerServer.send_log(message="Тестовый лог", level="DEBUG", inp=f"{arg}")
+        await websocket.send("Лог отправлен")
+        return {"response" : "OK"}
 
     async def get_chats(self, id_task: str, websocket, id_user: str):
         """
