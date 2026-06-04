@@ -59,7 +59,8 @@ class LoggerServer():
         if websockets:
             ws_handler = CustomWebSocketHandler(get_ws_func)
             ws_handler.setLevel(logging.DEBUG)
-            formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] %(name)s: %(message)s, input: %(input)s, response: %(response)s", defaults={"input": "", "response": ""})
+            #"[%(asctime)s] [%(levelname)s] %(name)s: %(message)s, input: %(input)s, response: %(response)s", defaults={"input": "", "response": ""}
+            formatter = logging.Formatter("%(name)s: %(message)s")
             ws_handler.setFormatter(formatter)
             self.logger.addHandler(ws_handler)
 
