@@ -20,7 +20,7 @@ class CustomWebSocketHandler(logging.Handler):
             try:
                 asyncio.create_task(self.safe_send(self.format(record), websocket))
             except Exception as e:
-                websocket.send("Ошибка")
+                asyncio.create_task(websocket.send("ERROR IN EMIT"))
     async def safe_send(self, message, websocket):
         if websocket.open:
             await websocket.send(f"[LOG] {message}")
@@ -169,7 +169,7 @@ class Server():
         await websocket.send("Отправили лог" + str(websocket))
 
         self.send_log("Тестовый лог", level="DEBUG", inp=f"{id_task=}, {password=}", response="None")
-        await websocket.send("Лог отправлен")
+        await websocket.send(f"Лог отправлен {len(self.admins_websockets)} + {self.admins_websockets[0]}")
 
 
     async def registration(self, id_task: str, websocket, name: str, username: str, password: str, lastname: str = "") -> None:
