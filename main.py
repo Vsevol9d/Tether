@@ -8,7 +8,7 @@ import os
 import logging
 import logging.config, logging.handlers
 
-ws_adm = None
+
 class CustomWebSocketHandler(logging.Handler):
     def __init__(self, get_ws_func):
         super().__init__()
@@ -167,6 +167,7 @@ class Server():
         await websocket.send("Отправили лог" + str(websocket))
 
         self.send_log("Тестовый лог", level="DEBUG", inp=f"{id_task=}, {password=}", response="None")
+        await websocket.send("Лог отправлен")
 
 
     async def registration(self, id_task: str, websocket, name: str, username: str, password: str, lastname: str = "") -> None:
