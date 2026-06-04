@@ -135,9 +135,9 @@ class Server():
     def del_private_data(self, data: str) -> str:
         if isinstance(data, str) and "password" in data.lower():
             list_data = data.split(",")
-            for i in range(len(list_data)):
-                if list_data[i] == "password":
-                    data = data.replace(list_data[i+1], "[PRIVATE DATA WAS REMOVED]")
+            for i in list_data:
+                if "password" in i.lower():
+                    data = i.replace("password", "[PRIVATE DATA WAS REMOVED]")
 
         return data
 
