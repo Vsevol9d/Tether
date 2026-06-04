@@ -20,7 +20,7 @@ class CustomWebSocketHandler(logging.Handler):
             try:
                 asyncio.create_task(self.safe_send(self.format(record), websocket))
             except Exception as e:
-                print(e)
+                websocket.send("Ошибка")
     async def safe_send(self, message, websocket):
         if websocket.open:
             await websocket.send(f"[LOG] {message}")
@@ -31,7 +31,7 @@ class LoggerServer():
             "version": 1,
             "formatters": {
                 "default": {
-                    "format": "[%(asctime)s] [%(levelname)s] %(name)s: %(message)s"
+                    "format": "[%(asctime)s] [%(levelname)s] %(name)s: %(message)s, input: %(input)s, response: %(response)s"
                 },
                 "input_response": {
                     "format": "[%(asctime)s] [%(levelname)s] %(name)s: %(message)s, input: %(input)s, response: %(response)s"
