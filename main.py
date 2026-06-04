@@ -48,7 +48,7 @@ class LoggerServer():
             },
             "loggers": {
                 "server": {
-                    "handlers": ["console"],
+                    "handlers": [],
                     "level": "DEBUG",
                     "propagate": False,
                 }
