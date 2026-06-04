@@ -43,6 +43,7 @@ class LoggerServer:
                         await ws.send(msg)
                     except:
                         pass
+
     @classmethod
     def auto_log(cls, message="Процесс завершился"):
         def decorator(func):
@@ -242,7 +243,7 @@ class Server():
             output = json.dumps({"id_task": id_task, "response": f"Fall {e}"})
             return output
 
-    @LoggerServer.auto_log()
+    #@LoggerServer.auto_log()
     async def test_method(self, id_task: str, websocket, arg):
         await websocket.send(json.dumps({"id_task": id_task, "response": arg}))
         await self.loggerServer.send_log(message="Тестовый лог", level="DEBUG", inp=f"{arg}")
